@@ -117,20 +117,20 @@ hyperparameters = {
     'detection': {
         'input_shape': [32, 3, 224, 224],
         'learning_rate': 0.001,
-        'dropout_rate': 0.3,
-        'epochs': 15
+        'dropout_rate': 0.5,
+        'epochs': 10
     },
     'classification': {
         'input_shape': [32, 3, 224, 224],
         'learning_rate': 0.001,
         'dropout_rate': 0.5,
-        'epochs': 15
+        'epochs': 10
     },
     'recognition': {
         'input_shape': [32, 3, 48, 48],
         'learning_rate': 0.001,
         'dropout_rate': 0.5,
-        'epochs': 15
+        'epochs': 10
     }
 }
 
@@ -143,7 +143,7 @@ recognition_model = models.resnet18(pretrained=True)
 
 # Number of samples and batch size
 num_samples = 100
-batch_size = 64
+batch_size = 32
 
 # Evaluate R-CNN model
 print("Evaluating R-CNN model")

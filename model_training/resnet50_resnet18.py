@@ -5,17 +5,17 @@ import numpy as np
 import time
 import csv
 
-# Check for GPU availability
+# Kiểm tra xem có GPU hay không
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Function to generate fake input data
+# Hàm tạo dữ liệu giả đầu vào
 def generate_fake_input(input_shape):
     return torch.randn(*input_shape, dtype=torch.float32).to(device)
 
-# Model evaluation function
+# Hàm đánh giá mô hình
 def evaluate_model(model, input_shape, num_samples, batch_size, learning_rate, dropout_rate, epochs):
-    model.eval()  # Set model to evaluation mode
-    model.to(device)  # Move model to GPU if available
+    model.eval()  # Đặt mô hình ở chế độ đánh giá
+    model.to(device)  # Chuyển mô hình vào GPU nếu có
     print("Model loaded successfully.")
     
     print(f"Evaluating model with {num_samples} samples and batch size {batch_size}")
@@ -24,24 +24,24 @@ def evaluate_model(model, input_shape, num_samples, batch_size, learning_rate, d
     y_true = []
     y_pred = []
     
-    # Full batches and remaining samples
+    # Số batch đầy đủ và số mẫu còn lại
     total_batches = num_samples // batch_size
     remaining_samples = num_samples % batch_size
 
     for _ in range(total_batches):
         fake_input = generate_fake_input(input_shape)
         start_time = time.time()
-        with torch.no_grad():  # Disable gradient calculation for faster evaluation
+        with torch.no_grad():  # Tắt tính toán gradient để tăng tốc
             outputs = model(fake_input)
         inference_time = time.time() - start_time
         inference_times.append(inference_time)
         
-        # Generate random labels for fake accuracy
+        # Sinh dữ liệu giả để đánh giá accuracy
         y_true.extend(np.random.randint(0, 2, size=(batch_size,)))
         y_pred_batch = np.random.randint(0, 2, size=(batch_size,))
         y_pred.extend(y_pred_batch)
 
-    # Process remaining samples if any
+    # Xử lý các mẫu còn lại (nếu có)
     if remaining_samples > 0:
         remaining_shape = [remaining_samples] + input_shape[1:]
         fake_input = generate_fake_input(remaining_shape)
@@ -58,7 +58,7 @@ def evaluate_model(model, input_shape, num_samples, batch_size, learning_rate, d
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
 
-    # Calculate metrics
+    # Tính toán các chỉ số đánh giá
     accuracy = np.mean(y_true == y_pred)
     precision = np.sum((y_pred == 1) & (y_true == 1)) / (np.sum(y_pred == 1) + 1e-8)
     recall = np.sum((y_pred == 1) & (y_true == 1)) / (np.sum(y_true == 1) + 1e-8)
@@ -83,21 +83,21 @@ def evaluate_model(model, input_shape, num_samples, batch_size, learning_rate, d
         "epochs": epochs
     }
 
-# Function to save results to CSV
-def save_results_to_csv(results, model_name, filename='model_evaluation_results3.csv'):
+# Hàm lưu kết quả vào CSV
+def save_results_to_csv(results, model_name, filename='model_evaluation_results2.csv'):
     fieldnames = ['model_name', 'accuracy', 'precision', 'recall', 'f1_score', 
                   'avg_inference_time', 'max_inference_time', 'min_inference_time', 
                   'learning_rate', 'dropout_rate', 'epochs']
     
-    # Open file in append mode
+    # Mở file ở chế độ 'a' để thêm dữ liệu
     with open(filename, mode='a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         
-        # Write header if file is empty
+        # Nếu file trống, ghi header vào
         if file.tell() == 0:
             writer.writeheader()
         
-        # Write model results
+        # Ghi kết quả cho mô hình hiện tại
         writer.writerow({
             'model_name': model_name,
             'accuracy': results['accuracy'],
@@ -112,74 +112,48 @@ def save_results_to_csv(results, model_name, filename='model_evaluation_results3
             'epochs': results['epochs']
         })
 
-# Hyperparameters for each model
+# Siêu tham số cho các mô hình
 hyperparameters = {
     'detection': {
         'input_shape': [32, 3, 224, 224],
         'learning_rate': 0.001,
-        'dropout_rate': 0.3,
+        'dropout_rate': 0.7,
         'epochs': 15
     },
     'classification': {
         'input_shape': [32, 3, 224, 224],
         'learning_rate': 0.001,
-        'dropout_rate': 0.5,
+        'dropout_rate': 0.7,
         'epochs': 15
     },
     'recognition': {
         'input_shape': [32, 3, 48, 48],
         'learning_rate': 0.001,
-        'dropout_rate': 0.5,
+        'dropout_rate': 0.7,
         'epochs': 15
     }
 }
 
-# Initialize R-CNN and SSD models
-detection_model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-ssd_model = models.detection.ssd300_vgg16(pretrained=True)  # Change if SSD model is pre-trained
+# Khởi tạo các mô hình ResNet (dùng pretrained model cho các mô hình lớn)
+detection_model = models.resnet50(pretrained=True)  # Dùng mô hình đã huấn luyện sẵn
+classification_model = models.resnet50(pretrained=True)
+recognition_model = models.resnet18(pretrained=True)  # Dùng mô hình nhẹ hơn cho recognition
 
-# Recognition model (ResNet-18 as a lightweight alternative)
-recognition_model = models.resnet18(pretrained=True)
-
-# Number of samples and batch size
+# Số mẫu và batch size cho đánh giá
 num_samples = 100
-batch_size = 64
+batch_size = 32
 
-# Evaluate R-CNN model
-print("Evaluating R-CNN model")
-evaluation_results_rcnn = evaluate_model(
-    detection_model, 
-    hyperparameters['detection']['input_shape'], 
-    num_samples, 
-    batch_size, 
-    hyperparameters['detection']['learning_rate'], 
-    hyperparameters['detection']['dropout_rate'], 
-    hyperparameters['detection']['epochs']
-)
-save_results_to_csv(evaluation_results_rcnn, 'R-CNN Model', filename='model_evaluation_results3.csv')
+# Đánh giá mô hình phát hiện (Detection)
+print("Evaluating detection model")
+evaluation_results_detection = evaluate_model(detection_model, hyperparameters['detection']['input_shape'], num_samples, batch_size, hyperparameters['detection']['learning_rate'], hyperparameters['detection']['dropout_rate'], hyperparameters['detection']['epochs'])
+save_results_to_csv(evaluation_results_detection, 'Detection Model')
 
-# Evaluate SSD model
-print("Evaluating SSD model")
-evaluation_results_ssd = evaluate_model(
-    ssd_model, 
-    hyperparameters['classification']['input_shape'], 
-    num_samples, 
-    batch_size, 
-    hyperparameters['classification']['learning_rate'], 
-    hyperparameters['classification']['dropout_rate'], 
-    hyperparameters['classification']['epochs']
-)
-save_results_to_csv(evaluation_results_ssd, 'SSD Model', filename='model_evaluation_results3.csv')
+# Đánh giá mô hình phân loại (Classification)
+print("Evaluating classification model")
+evaluation_results_classification = evaluate_model(classification_model, hyperparameters['classification']['input_shape'], num_samples, batch_size, hyperparameters['classification']['learning_rate'], hyperparameters['classification']['dropout_rate'], hyperparameters['classification']['epochs'])
+save_results_to_csv(evaluation_results_classification, 'Classification Model')
 
-# Evaluate recognition model
+# Đánh giá mô hình nhận diện (Recognition)
 print("Evaluating recognition model")
-evaluation_results_recognition = evaluate_model(
-    recognition_model, 
-    hyperparameters['recognition']['input_shape'], 
-    num_samples, 
-    batch_size, 
-    hyperparameters['recognition']['learning_rate'], 
-    hyperparameters['recognition']['dropout_rate'], 
-    hyperparameters['recognition']['epochs']
-)
-save_results_to_csv(evaluation_results_recognition, 'Recognition Model', filename='model_evaluation_results3.csv')
+evaluation_results_recognition = evaluate_model(recognition_model, hyperparameters['recognition']['input_shape'], num_samples, batch_size, hyperparameters['recognition']['learning_rate'], hyperparameters['recognition']['dropout_rate'], hyperparameters['recognition']['epochs'])
+save_results_to_csv(evaluation_results_recognition, 'Recognition Model')

@@ -5,6 +5,7 @@ import cv2
 import numpy
 from pyclipper import *
 from shapely.geometry import Polygon
+from pyclipper import PyclipperOffset, JT_ROUND, ET_CLOSEDPOLYGON
 
 from utils.util import CTCDecoder
 
