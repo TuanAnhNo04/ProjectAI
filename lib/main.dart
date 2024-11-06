@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:image_processing_app/screens/HistoryScreen.dart';
 
 import 'screens/login_screen.dart';
-import 'screens/process_image_screen.dart';
 
 
 void main() {
