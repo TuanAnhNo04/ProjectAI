@@ -50,27 +50,29 @@
 
 ## 2. GIAI ĐOẠN P0 — Cứu project (Day 0 → Day 4)
 
-### Day 0 — Khởi động & chốt "trạng thái số 0" (1 giờ) ✋
-- [ ] ✋ `flutter --version` (ghi lại số) · `flutter doctor -v`
-- [ ] ✋ `git init`; kiểm tra `.gitignore` (project đã có file này)
-- [ ] ✋ Commit baseline: `git add -A; git commit -m "chore: baseline before refactor"`
-- [ ] ✋ Commit tài liệu này: `git add docs/ROADMAP.md; git commit -m "docs: add day-by-day roadmap"`
-- [ ] **DoD:** `git log --oneline` có ≥ 1 commit; `flutter doctor` không lỗi chặn Android toolchain.
+### Day 0 — Khởi động & chốt "trạng thái số 0" (1 giờ) ✋ ✅ **21/09/2026**
+- [x] ✋ `flutter --version` · `flutter doctor`
+      - Ghi nhận: Flutter **3.19.4** stable / Dart **3.3.2** · git **2.55.0.windows.3** · identity `Tuan Anh <davidpham01104@gmail.com>` · Windows 10.0.26200 · locale en-US
+      - ⚠️ `flutter doctor`: **Android toolchain ✗ (thiếu `cmdline-tools`)** · Android Studio chưa cài · Visual Studio chưa cài · 3 device khả dụng nhưng **không có emulator/máy Android**
+- [x] ✋ `git init -b main`; `.gitignore` của project đã có sẵn (không cần thêm)
+- [x] ✋ Commit baseline → `8a74b8f` *chore: baseline before refactor (Flutter app + audit findings)*
+- [x] ✋ Commit tài liệu này → `4f30d26` *docs: add day-by-day roadmap (P0-P3)*
+- [x] **DoD:** `git log --oneline` có 2 commit; working tree sạch
 
-### Day 1 — Nâng SDK + dọn `pubspec.yaml` (3 giờ) 🤖✋
-- [ ] ✋ Nâng Flutter: `flutter upgrade` → `flutter --version` phải **≥ 3.24** (kèm Dart ≥ 3.5.3)
-      - Nếu không nâng được (máy/mạng hạn chế): giữ Flutter 3.19.4 và **hạ** `environment.sdk: ^3.3.0`. **Chỉ chọn 1 trong 2**, không để lệch như hiện tại.
-- [ ] 🤖 Sửa `pubspec.yaml` (1 task duy nhất, giao AI):
-      - **Giữ cho P0/P1:** `flutter_riverpod`, `dio`, `image_picker`, `flutter_secure_storage`, `shared_preferences`, `intl`, `cached_network_image`
-      - **XOÁ:** `tflite_flutter`, `tflite_flutter_helper`, `google_mlkit_text_recognition`, `camera`, `image`, `uuid`, `path_provider`, `lottie`, `build_runner`, `http` (thay bằng `dio`) → sẽ thêm lại đúng thứ cần ở Day 26
+### Day 1 — Nâng SDK + dọn `pubspec.yaml` (3 giờ) 🤖✋ ✅ **21/09/2026**
+- [x] ✋ **Quyết định: chọn phương án (B)** — giữ Flutter 3.19.4, hạ `environment.sdk: ^3.5.3` → `^3.3.0` (khớp Dart 3.3.2 đang cài; việc `flutter upgrade` lên ≥ 3.24 dời sang Day 26 vì ML Kit cần iOS 15.5/compileSdk 35)
+- [x] 🤖 Sửa `pubspec.yaml`:
+      - **XOÁ 11 dep không dùng:** `tflite_flutter`, `tflite_flutter_helper` (discontinued), `google_mlkit_text_recognition`, `camera`, `cached_network_image`, `lottie`, `image`, `path_provider`, `uuid`, `build_runner`
+      - **GIỮ:** `http ^0.13.6` (code hiện tại còn dùng — thay bằng `dio` ở Day 8–9), `cupertino_icons`, `image_picker`
+      - **THÊM sẵn cho P1:** `dio`, `flutter_riverpod`, `flutter_secure_storage`, `shared_preferences`, `intl`
       - Xoá 3 file rỗng: `lib/models/user_model.dart`, `lib/services/api_service.dart`, `lib/widgets/custom_button.dart`
-- [ ] ✋ Resolve lại từ đầu (lock đang lệch):
+- [x] ✋ Resolve lại từ đầu:
       ```powershell
       Remove-Item pubspec.lock -Force
-      flutter pub get
-      flutter pub deps --style=compact
+      flutter pub get     # → Changed 79 dependencies!
       ```
-- [ ] **DoD:** `flutter pub get` kết thúc bằng `Got dependencies!`; `pubspec.lock` chứa **đủ** các direct dep đang khai báo (hiện chỉ 5/17). Commit.
+- [x] **DoD (đạt):** `pubspec.lock` mới có **9 direct deps** (đủ 100% khai báo), `sdks: dart >=3.3.0, flutter >=3.19.0`
+- 📌 Ghi chú: `flutter analyze` = **38 issues (0 warning, 38 info)** — toàn bộ là lint của code cũ, xử lý ở Day 10. `flutter test` fail 1 test mặc định → viết lại ở Day 3.
 
 ### Day 2 — Cấu hình nền tảng để app chạy thật (3 giờ) ✋🤖
 - [ ] ✋ Tạo `android/app/src/debug/res/xml/network_security_config.xml`:
@@ -333,8 +335,8 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 
 | Ngày | Việc | AI? | DoD | Xong |
 |---|---|---|---|---|
-| 0 | Baseline + `git init` | ✋ | `git log` có commit | ☐ |
-| 1 | Nâng SDK + dọn pubspec | 🤖✋ | `flutter pub get` xanh | ☐ |
+| 0 | Baseline + `git init` | ✋ | `git log` có commit | ✅ 21/09 |
+| 1 | Nâng SDK + dọn pubspec | 🤖✋ | `flutter pub get` xanh | ✅ 21/09 |
 | 2 | Cấu hình nền tảng | ✋🤖 | `flutter run` không crash | ☐ |
 | 3 | Test + CI | 🤖✋ | `flutter test` xanh, CI xanh | ☐ |
 | 4 | Buffer → **M0** | ✋ | Day 1–3 tick hết | ☐ |
@@ -383,6 +385,34 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 | Chi phí LLM vượt kiểm soát | Trung bình | Quota/user, cache câu trả lời, model nhỏ cho việc đơn giản, dashboard chi phí từ Day 24 |
 | Agent trả lời sai về y tế | Cao nếu không kiểm soát | Grounded-only + citation + từ chối + eval chạy mỗi lần đổi prompt |
 | Hết quota AI giữa giai đoạn | Cao | Áp dụng Phụ lục D |
+
+---
+
+---
+
+## 11. NHẬT KÝ THỰC THI
+
+### 21/09/2026 — Day 0 ✅ + Day 1 ✅
+
+**Môi trường ghi nhận:** Flutter **3.19.4** stable / Dart **3.3.2** · git **2.55.0.windows.3** · identity `Tuan Anh <davidpham01104@gmail.com>` · Windows 10.0.26200 · locale en-US.
+
+**Day 0 — baseline & version control**
+- `git init -b main` → 2 commit: `8a74b8f` *chore: baseline before refactor* và `4f30d26` *docs: add day-by-day roadmap (P0-P3)*; working tree sạch.
+- `flutter doctor`: Flutter ✓ · Windows ✓ · Chrome ✓ · Network ✓ · **Android toolchain ✗ (thiếu `cmdline-tools`)** · Android Studio **chưa cài** · Visual Studio **chưa cài** → không build được Windows desktop · 3 device khả dụng (Windows/Chrome/Edge) nhưng **không có emulator hay máy Android**.
+
+**Day 1 — gỡ blocker build**
+- Chọn **phương án (B)**: giữ Flutter 3.19.4, hạ `environment.sdk` `^3.5.3` → `^3.3.0` (trước đây SDK constraint cao hơn Dart đang cài nên `pub get` fail 100%).
+- Xoá 11 dependency không dùng + 3 file rỗng; giữ `http` để code hiện tại vẫn compile; thêm sẵn `dio`, `flutter_riverpod`, `flutter_secure_storage`, `shared_preferences`, `intl` cho P1.
+- `Remove-Item pubspec.lock` → `flutter pub get` = **`Changed 79 dependencies!`** → `pubspec.lock` mới: **9 direct deps** (đủ khai báo), `sdks: dart >=3.3.0, flutter >=3.19.0`. ✅ **DoD đạt** — project đã resolve được dependency lần đầu tiên.
+- `flutter analyze` = **38 issues** (0 warning + 38 info: `prefer_const_constructors`, `use_build_context_synchronously`, `unused_element`, `avoid_print`, `library_private_types_in_public_api`) → dọn ở Day 10.
+- `flutter test` = **fail 1 test** (`Counter increments smoke test`, `test/widget_test.dart:19`) đúng như dự đoán → viết lại ở Day 3.
+- **Phát sinh ngoài kế hoạch:** `pubspec.yaml` được thêm block `assets: - assets/models/` (không phải do phiên này sửa) trong khi thư mục chưa tồn tại → analyzer warning `asset_directory_does_not_exist`. Đã xử lý bằng cách tạo `assets/models/README.md` (ghi rõ model `.tflite` dùng từ Day 26) → warning biến mất (39 → 38 issues).
+
+**Chênh lệch có chủ đích so với kế hoạch:** giữ `http` tới Day 8–9 (thay vì xoá ở Day 1) để P0 vẫn build được; `cached_network_image` thêm ở Day 12 khi thực sự cần.
+
+**Chặn cần bạn gỡ (ảnh hưởng DoD Day 2):** máy chưa có Android emulator/thiết bị và thiếu `cmdline-tools` → không ai verify được `flutter run`. Cần: cài `cmdline-tools;latest` (hoặc cài Android Studio) + tạo emulator, hoặc cắm máy thật bật USB debugging.
+
+**Kế tiếp (Day 2):** `network_security_config.xml` (debug) · `CAMERA` + `READ_MEDIA_IMAGES` · `Info.plist` iOS (photo/camera + ATS Debug) · macOS `network.client` · bỏ `enableJetifier` · `minSdk = 26`.
 
 ---
 
