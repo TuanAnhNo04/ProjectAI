@@ -13,7 +13,8 @@ class _MedicineSearchPageState extends State<MedicineSearchPage> {
   String _errorMessage = '';
 
   Future<void> _searchMedicine() async {
-    final String medicineName = _searchController.text.trim(); // Loại bỏ khoảng trắng
+    final String medicineName =
+        _searchController.text.trim(); // Loại bỏ khoảng trắng
 
     if (medicineName.isEmpty) {
       setState(() {
@@ -28,7 +29,8 @@ class _MedicineSearchPageState extends State<MedicineSearchPage> {
     });
 
     // Tạo URL với tham số name
-    final String url = 'http://10.0.2.2:5000/search-medicine?name=$medicineName';
+    final String url =
+        'http://10.0.2.2:5000/search-medicine?name=$medicineName';
     print("Searching for medicine: $url"); // In ra URL để kiểm tra
 
     final response = await http.get(Uri.parse(url));
@@ -106,13 +108,20 @@ class _MedicineSearchPageState extends State<MedicineSearchPage> {
                                 fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                           SizedBox(height: 8),
-                          Text("Thành Phần: ${_results[index]['Composition'] ?? 'Không có thông tin'}"),
-                          Text("Công Dụng: ${_results[index]['Uses'] ?? 'Không có thông tin'}"),
-                          Text("Tác Dụng Phụ: ${_results[index]['Side_effects'] ?? 'Không có thông tin'}"),
-                          Text("Nhà Sản Xuất: ${_results[index]['Manufacturer'] ?? 'Không có thông tin'}"),
-                          Text("Đánh Giá Xuất Sắc: ${_results[index]['Excellent Review %'] ?? '0%'}"),
-                          Text("Đánh Giá Trung Bình: ${_results[index]['Average Review %'] ?? '0%'}"),
-                          Text("Đánh Giá Kém: ${_results[index]['Poor Review %'] ?? '0%'}"),
+                          Text(
+                              "Thành Phần: ${_results[index]['Composition'] ?? 'Không có thông tin'}"),
+                          Text(
+                              "Công Dụng: ${_results[index]['Uses'] ?? 'Không có thông tin'}"),
+                          Text(
+                              "Tác Dụng Phụ: ${_results[index]['Side_effects'] ?? 'Không có thông tin'}"),
+                          Text(
+                              "Nhà Sản Xuất: ${_results[index]['Manufacturer'] ?? 'Không có thông tin'}"),
+                          Text(
+                              "Đánh Giá Xuất Sắc: ${_results[index]['Excellent Review %'] ?? '0%'}"),
+                          Text(
+                              "Đánh Giá Trung Bình: ${_results[index]['Average Review %'] ?? '0%'}"),
+                          Text(
+                              "Đánh Giá Kém: ${_results[index]['Poor Review %'] ?? '0%'}"),
                         ],
                       ),
                     ),

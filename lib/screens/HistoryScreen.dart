@@ -25,7 +25,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     try {
-      final response = await http.get(Uri.parse('http://10.0.2.2:5000/history'));
+      final response =
+          await http.get(Uri.parse('http://10.0.2.2:5000/history'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -63,7 +64,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     try {
-      final response = await http.delete(Uri.parse('http://10.0.2.2:5000/history/$id'));
+      final response =
+          await http.delete(Uri.parse('http://10.0.2.2:5000/history/$id'));
 
       if (response.statusCode == 200) {
         setState(() {
@@ -149,7 +151,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
                                   onPressed: () => _deleteHistoryItem(item),
                                 ),
                               ],
@@ -165,42 +168,51 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                             ),
                             // Display the search_results in a readable format
-                            ...(item['search_results'] ?? []).map<Widget>((searchResult) {
+                            ...(item['search_results'] ?? [])
+                                .map<Widget>((searchResult) {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 4),
                                   Text(
                                     'Medicine Name: ${searchResult['Medicine_Name']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Composition: ${searchResult['Composition']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Uses: ${searchResult['Uses']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Side Effects: ${searchResult['Side_effects']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Manufacturer: ${searchResult['Manufacturer']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Excellent Review %: ${searchResult['Excellent Review %']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Average Review %: ${searchResult['Average Review %']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   Text(
                                     'Poor Review %: ${searchResult['Poor Review %']}',
-                                    style: const TextStyle(color: Colors.black54),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
                                   ),
                                   const Divider(),
                                 ],

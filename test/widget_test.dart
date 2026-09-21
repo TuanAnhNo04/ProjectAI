@@ -10,21 +10,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:image_processing_app/main.dart';
 
+// LƯU Ý LỊCH SỬ (Day 3): phần dưới đây trước là test "Counter increments" mặc định của
+// template Flutter (tìm find.text('0') / Icons.add) nhưng app KHÔNG có counter => luôn FAIL.
+// Đã thay bằng smoke test thật của app.
+
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('App khởi động và hiển thị màn hình Đăng nhập', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(2));
+    expect(find.widgetWithText(ElevatedButton, 'Đăng nhập'), findsOneWidget);
+    expect(find.text('Đăng ký tài khoản mới'), findsOneWidget);
   });
 }

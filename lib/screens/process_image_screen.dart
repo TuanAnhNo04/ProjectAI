@@ -44,7 +44,8 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
         'POST',
         Uri.parse('http://10.0.2.2:5000/process-image'),
       );
-      request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+      request.files
+          .add(await http.MultipartFile.fromPath('image', _image!.path));
 
       final response = await request.send();
 
@@ -96,7 +97,8 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
       return _searchResults;
     } else {
       return _searchResults
-          ?.where((result) => result.toLowerCase().contains(_searchQuery.toLowerCase()))
+          ?.where((result) =>
+              result.toLowerCase().contains(_searchQuery.toLowerCase()))
           .toList();
     }
   }
@@ -174,7 +176,9 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
         height: 200,
         width: double.infinity,
         child: _image == null
-            ? const Center(child: Text('Chưa chọn ảnh', style: TextStyle(color: Colors.black54)))
+            ? const Center(
+                child: Text('Chưa chọn ảnh',
+                    style: TextStyle(color: Colors.black54)))
             : ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.file(_image!, fit: BoxFit.cover),
@@ -193,7 +197,9 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _processImage,
-          child: _isLoading ? const CircularProgressIndicator() : const Text('Xử lý Ảnh'),
+          child: _isLoading
+              ? const CircularProgressIndicator()
+              : const Text('Xử lý Ảnh'),
         ),
       ],
     );
@@ -204,7 +210,8 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Kết quả tìm kiếm:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('Kết quả tìm kiếm:',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         if (filteredResults != null && filteredResults.isNotEmpty)
           SizedBox(
@@ -216,7 +223,8 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   elevation: 5,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -225,19 +233,23 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
                         if (details.length >= 4) ...[
                           Text(
                             'Tên: ${details[0].split(': ').last}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           Text(
                             'Thành phần: ${details[1].split(': ').last}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           Text(
                             'Công dụng: ${details[2].split(': ').last}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           Text(
                             'Tác dụng phụ: ${details[3].split(': ').last}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ],
                       ],
@@ -250,7 +262,8 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
         else
           const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Text('Không có kết quả.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            child: Text('Không có kết quả.',
+                style: TextStyle(fontSize: 16, color: Colors.grey)),
           ),
       ],
     );

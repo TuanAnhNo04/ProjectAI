@@ -1,0 +1,35 @@
+name: CI
+
+# Day 3 — pipeline tối thiểu: format check -> analyze -> test.
+# Chạy trên mọi push vào main và mọi pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Dùng đúng phiên bản Flutter của máy dev (xem docs/ROADMAP.md mục 11)
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.4'
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        # --no-fatal-infos: cho phép còn lint info (sẽ dọn ở Day 10) nhưng chặn warning/error
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test

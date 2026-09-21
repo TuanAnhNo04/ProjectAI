@@ -16,7 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> register() async {
     final response = await http.post(
-Uri.parse('http://10.0.2.2:5000/register'),
+      Uri.parse('http://10.0.2.2:5000/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'username': _usernameController.text,
