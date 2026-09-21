@@ -74,34 +74,32 @@
 - [x] **DoD (đạt):** `pubspec.lock` mới có **9 direct deps** (đủ 100% khai báo), `sdks: dart >=3.3.0, flutter >=3.19.0`
 - 📌 Ghi chú: `flutter analyze` = **38 issues (0 warning, 38 info)** — toàn bộ là lint của code cũ, xử lý ở Day 10. `flutter test` fail 1 test mặc định → viết lại ở Day 3.
 
-### Day 2 — Cấu hình nền tảng để app chạy thật (3 giờ) ✋🤖
-- [ ] ✋ Tạo `android/app/src/debug/res/xml/network_security_config.xml`:
-      ```xml
-      <?xml version="1.0" encoding="utf-8"?>
-      <network-security-config>
-        <domain-config cleartextTrafficPermitted="true">
-          <domain includeSubdomains="true">10.0.2.2</domain>
-          <domain includeSubdomains="true">localhost</domain>
-        </domain-config>
-      </network-security-config>
-      ```
-- [ ] ✋ Thêm vào `android/app/src/debug/AndroidManifest.xml` (trong `<manifest>`):
-      ```xml
-      <application android:networkSecurityConfig="@xml/network_security_config" />
-      ```
-- [ ] ✋ `android/app/src/main/AndroidManifest.xml`: thêm `android.permission.CAMERA` (+ `READ_MEDIA_IMAGES`) — chuẩn bị cho Day 26; giữ `INTERNET`
-- [ ] 🤖 `ios/Runner/Info.plist`: thêm `NSPhotoLibraryUsageDescription`, `NSCameraUsageDescription` (mô tả mục đích bằng tiếng Việt) và `NSAppTransportSecurity` cho `localhost` — **chỉ Debug, không bật cho release**
-- [ ] ✋ `macos/Runner/DebugProfile.entitlements` + `Release.entitlements`: thêm `com.apple.security.network.client`
-- [ ] ✋ `android/gradle.properties`: **xoá** `android.enableJetifier=true`
-- [ ] ✋ `android/app/build.gradle`: `minSdk = 26`; đổi `namespace` + `applicationId` sang tên riêng (vd `com.tenban.medassist`)
-- [ ] **DoD:** `flutter run` mở được app, vào màn hình Đăng nhập, không crash. (Login sẽ fail nếu server chưa chạy — chấp nhận.)
+### Day 2 — Cấu hình nền tảng để app chạy thật (3 giờ) ✋🤖 ✅ **21/09/2026** (code xong, `flutter run` ⏳ chờ JDK)
+- [x] ✋ Tạo `android/app/src/debug/res/xml/network_security_config.xml` — cho phép cleartext tới `10.0.2.2`, `localhost`, `127.0.0.1` (**chỉ debug**; bản release không có file này → bắt buộc HTTPS)
+- [x] ✋ `android/app/src/debug/AndroidManifest.xml`: thêm `<application android:networkSecurityConfig="@xml/network_security_config" />`
+- [x] ✋ `android/app/src/main/AndroidManifest.xml`: thêm `CAMERA` + `<uses-feature camera required="false">`; **giữ `INTERNET`**
+      - 📌 **Chủ động KHÔNG thêm `READ_MEDIA_IMAGES`/`READ_EXTERNAL_STORAGE`**: `image_picker 1.x` dùng Android Photo Picker (API 33+)/`ACTION_GET_CONTENT` nên không cần quyền đọc bộ nhớ; thêm quyền thừa sẽ bị Google Play soi khi review.
+- [x] 🤖 `ios/Runner/Info.plist`: thêm `NSPhotoLibraryUsageDescription`, `NSCameraUsageDescription` (mô tả tiếng Việt) và `NSAppTransportSecurity` → `NSExceptionDomains` cho `localhost`/`127.0.0.1` (không dùng `NSAllowsArbitraryLoads` nên HTTPS ở release vẫn nguyên vẹn)
+- [x] ✋ `macos/Runner/DebugProfile.entitlements` + `Release.entitlements`: thêm `com.apple.security.network.client`
+- [x] ✋ `android/gradle.properties`: **xoá** `android.enableJetifier=true`
+- [x] ✋ `android/app/build.gradle`: `minSdk = 26`; `namespace` + `applicationId` = **`com.medassist.app`**; di chuyển `MainActivity.kt` sang `kotlin/com/medassist/app/` (đổi cả `package` — namespace mới resolve `.MainActivity` theo đường dẫn này)
+- [x] ✋ **Phát sinh:** pin `ndkVersion = "26.3.11579264"` (bản đã cài trên máy) thay cho `flutter.ndkVersion` (25.1.8937393 **không có** trên máy → Gradle sẽ cố tải NDK và fail vì thiếu `cmdline-tools`)
+- [x] **Kiểm chứng đã chạy:** parse XML/plist hợp lệ **6/6 file** (`[xml]` PowerShell) · commit `ec6346d` (10 file)
+- [ ] ⏳ **DoD `flutter run`:** **CHƯA verify được** — máy thiếu **JDK** (`java` không có trong PATH, `JAVA_HOME` chưa set → `flutter build apk --debug` trả `ERROR: JAVA_HOME is not set`), chưa có **AVD** (`flutter emulators` → *No emulators available* dù đã có system-image android-33/34/35). Cách gỡ: xem mục 11.
 
-### Day 3 — Test & CI (2 giờ) 🤖✋
-- [ ] ✋ Xoá nội dung test counter trong `test/widget_test.dart`
-- [ ] 🤖 Viết 3 test đầu tiên: (1) màn login có 2 `TextField` + nút "Đăng nhập"; (2) bấm Đăng nhập khi để rỗng → không crash, không gọi mạng; (3) khi API trả 401 → hiện SnackBar lỗi (dùng mock, không gọi mạng thật)
-- [ ] ✋ `flutter analyze; flutter test`
-- [ ] ✋ Tạo `.github/workflows/ci.yml`: `flutter analyze --no-fatal-infos` → `dart format --set-exit-if-changed .` → `flutter test`
-- [ ] **DoD:** `flutter test` → `All tests passed!`; push lên GitHub → CI xanh. Commit.
+### Day 3 — Test & CI (2 giờ) 🤖✋ ✅ **21/09/2026**
+- [x] ✋ Xoá nội dung test counter trong `test/widget_test.dart` → thay bằng smoke test khởi động app
+- [x] 🤖 Viết **5 test thật** (nhiều hơn 3 test dự kiến — thêm test điều hướng và test validate search):
+      1. `test/widget_test.dart` — app khởi động vào màn Đăng nhập (2 `TextField` + nút `Đăng nhập` + link đăng ký)
+      2. `test/screens/login_screen_test.dart` — render đủ ô nhập/nút/link
+      3. `test/screens/login_screen_test.dart` — server lỗi (flutter_test chặn HTTP và trả 400) → hiện `SnackBar "Đăng nhập thất bại!"`, **không crash, không điều hướng sai**
+      4. `test/screens/login_screen_test.dart` — bấm "Đăng ký tài khoản mới" → mở `RegisterScreen`
+      5. `test/screens/medicine_search_screen_test.dart` — bỏ trống tên thuốc → hiện `"Vui lòng nhập tên thuốc!"`, **không gọi API**
+- [x] ✋ `flutter analyze` (38 info, 0 warning/error) + `flutter test`
+- [x] ✋ Tạo `.github/workflows/ci.yml`: `flutter pub get` → `dart format --output=none --set-exit-if-changed .` → `flutter analyze --no-fatal-infos` → `flutter test` (ghim Flutter 3.19.4 cho khớp máy dev)
+- [x] ✋ Chạy `dart format .` (5 file được format lại) để **CI không đỏ ngay lần push đầu**
+- [x] **DoD (đạt):** `flutter test` → **`All tests passed!` (5/5)**; cả 3 bước CI chạy local đều **exit code 0** (format: 0 changed · analyze: 38 info non-fatal · test: 5 passed). Commit `5f68469`.
+
 
 ### Day 4 — Buffer / trả nợ kỹ thuật (2 giờ) ✋
 - [ ] Xử lý phần trượt từ Day 1–3 (nâng Flutter thường phát sinh lỗi Gradle/CocoaPods)
@@ -337,8 +335,8 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 |---|---|---|---|---|
 | 0 | Baseline + `git init` | ✋ | `git log` có commit | ✅ 21/09 |
 | 1 | Nâng SDK + dọn pubspec | 🤖✋ | `flutter pub get` xanh | ✅ 21/09 |
-| 2 | Cấu hình nền tảng | ✋🤖 | `flutter run` không crash | ☐ |
-| 3 | Test + CI | 🤖✋ | `flutter test` xanh, CI xanh | ☐ |
+| 2 | Cấu hình nền tảng | ✋🤖 | `flutter run` không crash | ✅ 21/09 (run ⏳ chờ JDK) |
+| 3 | Test + CI | 🤖✋ | `flutter test` xanh, CI xanh | ✅ 21/09 |
 | 4 | Buffer → **M0** | ✋ | Day 1–3 tick hết | ☐ |
 | 5 | AppConfig + ApiClient | 🤖✋ | chỉ còn 1 chỗ có `10.0.2.2` | ☐ |
 | 6 | Model typed | 🤖✋ | test models xanh | ☐ |
@@ -412,7 +410,40 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 
 **Chặn cần bạn gỡ (ảnh hưởng DoD Day 2):** máy chưa có Android emulator/thiết bị và thiếu `cmdline-tools` → không ai verify được `flutter run`. Cần: cài `cmdline-tools;latest` (hoặc cài Android Studio) + tạo emulator, hoặc cắm máy thật bật USB debugging.
 
-**Kế tiếp (Day 2):** `network_security_config.xml` (debug) · `CAMERA` + `READ_MEDIA_IMAGES` · `Info.plist` iOS (photo/camera + ATS Debug) · macOS `network.client` · bỏ `enableJetifier` · `minSdk = 26`.
+**Day 2 — cấu hình nền tảng (✅ code xong, verify `flutter run` còn treo vì thiếu JDK/AVD)**
+- Tạo `android/app/src/debug/res/xml/network_security_config.xml` (cleartext chỉ cho `10.0.2.2`/`localhost`/`127.0.0.1`) + trỏ `android:networkSecurityConfig` trong **debug manifest** → bản release không có file này nên vẫn bắt buộc HTTPS.
+- `AndroidManifest.xml`: thêm `CAMERA` + `<uses-feature camera required="false">`; **không** thêm `READ_MEDIA_IMAGES` (image_picker 1.x dùng Photo Picker → không cần; tránh quyền thừa).
+- `Info.plist` (iOS): `NSPhotoLibraryUsageDescription` + `NSCameraUsageDescription` (thiếu là **iOS kill app** khi chọn ảnh) + ATS `NSExceptionDomains` cho `localhost`/`127.0.0.1` (không dùng `NSAllowsArbitraryLoads`).
+- macOS: thêm `com.apple.security.network.client` vào cả Debug và Release entitlements.
+- `gradle.properties`: xoá `android.enableJetifier=true`; `build.gradle`: `minSdk = 26`, `namespace`/`applicationId` = `com.medassist.app`, **pin `ndkVersion`** về bản đã cài (`26.3.11579264`) vì NDK mặc định 25.1.8937393 không có trên máy.
+- `MainActivity.kt` chuyển sang `kotlin/com/medassist/app/` (đổi `package` cho khớp `namespace`).
+- **Kiểm chứng:** parse XML/plist **OK 6/6 file**; commit `ec6346d` (10 file).
+- **BLOCKER chưa verify được:** `flutter build apk --debug` → `ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH` → **máy chưa cài JDK nào** (đã quét: `Program Files\Android\Android Studio\jbr`, `Program Files\Java`, `Eclipse Adoptium`, `Microsoft`, `Zulu`, `.jdks`, VS Code extensions, registry `JavaSoft` → **không có**). Ngoài ra `flutter emulators` → *No emulators available* (đã có system-image android-33/34/35 nhưng chưa tạo AVD; mà tạo AVD cần `avdmanager` thuộc `cmdline-tools` đang thiếu).
+
+**Day 3 — test & CI (✅ hoàn tất và đã verify)**
+- Thay test counter mặc định → smoke test khởi động app; thêm `test/screens/login_screen_test.dart` (3 test) và `test/screens/medicine_search_screen_test.dart` (1 test) → **tổng 5 test**.
+- `dart format .` → format lại 5 file (để CI không đỏ lần push đầu); `flutter analyze` → **38 info, 0 warning, 0 error**.
+- `flutter test` → **`All tests passed!` (5/5)**.
+- Chạy đúng 3 lệnh của CI ở local: format check **exit 0** (0 changed) · `flutter analyze --no-fatal-infos` **exit 0** · `flutter test` **exit 0** → **CI sẽ xanh ngay lần push đầu**.
+- Tạo `.github/workflows/ci.yml` (ghim Flutter 3.19.4); commit `5f68469` (9 file).
+
+**Việc cần bạn làm để qua được M0 (2 việc, ~15 phút, không cần AI):**
+```powershell
+# 1) Cài JDK 17 (Temurin) rồi set JAVA_HOME — bắt buộc để build Android
+winget install --id EclipseAdoptium.Temurin.17.JDK -e
+# sau khi cài, mở PowerShell MỚI và kiểm tra: java -version
+# nếu chưa tự có JAVA_HOME: setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"
+
+# 2) Tạo & chạy AVD (cần cmdline-tools để có avdmanager)
+#    Cách A (khuyến nghị): cài Android Studio -> Device Manager -> Create Device (API 34/35)
+#    Cách B (dòng lệnh): cài cmdline-tools rồi:
+flutter emulators --create --name pixel_api34
+flutter emulators --launch pixel_api34
+flutter devices      # phải thấy emulator-5554
+```
+Sau đó `flutter run -d emulator-5554` → app phải vào màn Đăng nhập (đây là DoD còn lại của Day 2 + M0).
+
+**Kế tiếp (Day 4 — buffer/M0):** dọn nốt 38 lint info nếu muốn (đã dự kiến ở Day 10), ghi `docs/TROUBLESHOOTING.md` các lỗi môi trường vừa gặp, rồi chốt **Milestone M0** sau khi bạn chạy được `flutter run`.
 
 ---
 
