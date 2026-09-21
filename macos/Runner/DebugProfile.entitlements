@@ -8,5 +8,8 @@
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<!-- Day 2: cần quyền này để app gọi được API ra ngoài (thiếu -> request bị chặn trên macOS) -->
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>

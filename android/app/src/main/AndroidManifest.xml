@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- CAMERA: dùng để chụp ảnh hộp thuốc/đơn thuốc (ImageSource.camera ở Day 26 và package `camera`).
+         LƯU Ý: KHÔNG thêm READ_MEDIA_IMAGES/READ_EXTERNAL_STORAGE vì image_picker 1.x dùng
+         Android Photo Picker (API 33+) / ACTION_GET_CONTENT — không cần quyền đọc bộ nhớ,
+         thêm quyền thừa sẽ bị Google Play soi khi review. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <application
         android:label="image_processing_app"

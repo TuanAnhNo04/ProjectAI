@@ -6,9 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.image_processing_app"
+    // Day 2: đổi từ "com.example.image_processing_app" (giá trị template) sang tên riêng.
+    // namespace = package Java/Kotlin nội bộ (dùng để resolve ".MainActivity" trong Manifest).
+    namespace = "com.medassist.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Day 2: pin NDK về bản ĐÃ CÀI trên máy (26.3.11579264).
+    // Mặc định của Flutter 3.19 là 25.1.8937393 nhưng máy chưa có -> Gradle sẽ cố tải NDK
+    // (cần cmdline-tools, hiện đang thiếu) => build fail. App chưa có plugin native nên
+    // dùng NDK nào cũng được; khi thêm plugin native thì kiểm tra lại giá trị này.
+    ndkVersion = "26.3.11579264"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -20,11 +26,11 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.image_processing_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // applicationId = định danh app trên Google Play (KHÔNG đổi được sau khi publish -> chốt trước Day 30).
+        applicationId = "com.medassist.app"
+        // minSdk 26 (Android 8.0): cần cho các bước sau (tflite_flutter cần API >= 26,
+        // ML Kit cần >= 21) và giảm ma trận thiết bị phải hỗ trợ.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

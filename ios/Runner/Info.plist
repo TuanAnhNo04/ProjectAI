@@ -45,5 +45,30 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Day 2: quyền cho image_picker (Day 26 sẽ dùng thêm camera).
+	     Thiếu 2 key này thì iOS SẼ KILL APP ngay khi chọn ảnh. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ứng dụng cần quyền truy cập thư viện ảnh để bạn chọn ảnh hộp thuốc hoặc đơn thuốc cần nhận diện.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ứng dụng cần quyền dùng camera để bạn chụp ảnh hộp thuốc hoặc đơn thuốc cần nhận diện.</string>
+	<!-- Day 2: ngoại lệ ATS CHỈ cho localhost (server dev trên máy/giả lập).
+	     Không dùng NSAllowsArbitraryLoads để không vô hiệu hoá HTTPS ở bản release.
+	     Khi test trên iPhone thật, thêm IP LAN của máy tính vào NSExceptionDomains. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+			<key>127.0.0.1</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>
