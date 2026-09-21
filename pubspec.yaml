@@ -5,36 +5,30 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.3
+  # Khớp Flutter 3.19.4 / Dart 3.3.2 đang cài trên máy.
+  # Khi nâng Flutter lên >= 3.24 (Day 26 - ML Kit) thì đổi thành ^3.5.3.
+  sdk: ^3.3.0
 
 dependencies:
   flutter:
     sdk: flutter
-  http: ^0.13.6
 
+  # --- Đang được dùng bởi code hiện tại ---
   cupertino_icons: ^1.0.8
+  http: ^0.13.6          # sẽ được thay bằng dio ở Day 5-9 khi tách tầng adapter
   image_picker: ^1.1.2
-  flutter_secure_storage: ^9.2.2
 
-  flutter_riverpod: ^2.4.9
-  dio: ^5.4.3+9
-  camera: ^0.10.4
-  cached_network_image: ^3.3.1
-  lottie: ^3.2.0
-  image: ^4.1.3
-  path_provider: ^2.1.2
-  shared_preferences: ^2.2.3
-  intl: ^0.19.0
-  uuid: ^4.4.2
-  tflite_flutter: ^0.10.0
-  tflite_flutter_helper: ^0.3.0
-  google_mlkit_text_recognition: ^0.12.0
+  # --- Nền tảng cho các bước P1 (thêm sẵn để Day 5+ không phải sửa pubspec) ---
+  dio: ^5.4.3+9                    # ApiClient          (Day 5)
+  flutter_riverpod: ^2.4.9         # state management   (Day 9)
+  flutter_secure_storage: ^9.2.2   # lưu token          (Day 11)
+  shared_preferences: ^2.2.3       # cache offline      (Day 12)
+  intl: ^0.19.0                    # i18n vi/en         (Day 13)
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  build_runner: ^2.4.9
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
