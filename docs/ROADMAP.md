@@ -101,10 +101,12 @@
 - [x] **DoD (đạt):** `flutter test` → **`All tests passed!` (5/5)**; cả 3 bước CI chạy local đều **exit code 0** (format: 0 changed · analyze: 38 info non-fatal · test: 5 passed). Commit `5f68469`.
 
 
-### Day 4 — Buffer / trả nợ kỹ thuật (2 giờ) ✋
-- [ ] Xử lý phần trượt từ Day 1–3 (nâng Flutter thường phát sinh lỗi Gradle/CocoaPods)
-- [ ] Ghi mọi lỗi gặp phải + cách sửa vào `docs/TROUBLESHOOTING.md` (tài liệu này cứu bạn ở Day 15+)
-- [ ] **DoD:** checkbox Day 1–3 tick hết. 🎉 **Milestone M0**
+### Day 4 — Buffer / trả nợ kỹ thuật (2 giờ) ✋ 🟡 **đang làm (21/09/2026)**
+- [ ] Xử lý phần trượt từ Day 1–3: chỉ còn **1 hạng mục = chạy app trên device** (cần JDK + device, xem `docs/TROUBLESHOOTING.md` mục 12)
+- [x] Ghi mọi lỗi gặp phải + cách sửa vào **`docs/TROUBLESHOOTING.md`** — **đã viết, 12 mục**, toàn bộ dựa trên **số đo thật** của máy: JDK/cmdline-tools/AVD thiếu, `C:` còn **~4 GB**, NDK pin, minSdk/namespace, CLEARTEXT, `NSPhotoLibrary*`, bảng 5 lỗi dependency ở Day 1, và danh sách **những thứ KHÔNG cần cài**
+- [ ] ⚠️ **Phát hiện mới khi đo môi trường:** ổ **C: chỉ còn ~4 GB** trong khi AVD (3–10 GB) + cache Gradle (1–3 GB) mặc định đổ hết vào C: → **phải dời sang D: (còn 79 GB)** trước khi build, xem TROUBLESHOOTING mục 3
+- [ ] **DoD:** checkbox Day 1–3 tick hết + app chạy được trên device. 🎉 **Milestone M0**
+
 
 ---
 
@@ -427,23 +429,31 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 - Chạy đúng 3 lệnh của CI ở local: format check **exit 0** (0 changed) · `flutter analyze --no-fatal-infos` **exit 0** · `flutter test` **exit 0** → **CI sẽ xanh ngay lần push đầu**.
 - Tạo `.github/workflows/ci.yml` (ghim Flutter 3.19.4); commit `5f68469` (9 file).
 
-**Việc cần bạn làm để qua được M0 (2 việc, ~15 phút, không cần AI):**
+**Việc cần bạn làm để qua được M0 (chi tiết đầy đủ ở `docs/TROUBLESHOOTING.md` mục 1–4, 12):**
 ```powershell
-# 1) Cài JDK 17 (Temurin) rồi set JAVA_HOME — bắt buộc để build Android
-winget install --id EclipseAdoptium.Temurin.17.JDK -e
-# sau khi cài, mở PowerShell MỚI và kiểm tra: java -version
-# nếu chưa tự có JAVA_HOME: setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"
+# 0) RẤT QUAN TRỌNG: C: chỉ còn ~4 GB, trong khi AVD + cache Gradle cần 4-13 GB
+New-Item -ItemType Directory -Force -Path 'D:\dev\.gradle','D:\dev\AndroidAvd' | Out-Null
+setx GRADLE_USER_HOME "D:\dev\.gradle"; setx ANDROID_AVD_HOME "D:\dev\AndroidAvd"
 
-# 2) Tạo & chạy AVD (cần cmdline-tools để có avdmanager)
-#    Cách A (khuyến nghị): cài Android Studio -> Device Manager -> Create Device (API 34/35)
-#    Cách B (dòng lệnh): cài cmdline-tools rồi:
-flutter emulators --create --name pixel_api34
-flutter emulators --launch pixel_api34
+# 1) JDK 17 (Temurin) — bắt buộc để build Android (JDK của Java, không phải của Flutter)
+winget install --id EclipseAdoptium.Temurin.17.JDK -e
+
+# 2) Device để chạy app — chọn 1:
+#    A) Cắm điện thoại Android thật + bật USB debugging  -> KHÔNG tốn dung lượng, KHÔNG cần cài gì thêm
+#    B) AVD: cần cmdline-tools (flutter emulators KHÔNG có --create), rồi:
+$sdk = "$env:LOCALAPPDATA\Android\Sdk"
+& "$sdk\cmdline-tools\latest\bin\avdmanager.bat" create avd -n pixel_api35 -k "system-images;android-35;google_apis;x86_64" -d pixel_7
+& "$sdk\emulator\emulator.exe" -avd pixel_api35 -no-snapshot-save
 flutter devices      # phải thấy emulator-5554
 ```
+**Ảnh đã có sẵn trên máy (khỏi tải):** `android-35/google_apis/x86_64` ✅ · `android-33/google_apis/x86_64` ✅ · `android-34/google_apis` ❌ **rỗng** (chưa có ABI nào).
+Máy CPU Intel AMD64 + `HypervisorPresent=True` → chọn ABI **`x86_64`**, emulator có WHPX.
+
 Sau đó `flutter run -d emulator-5554` → app phải vào màn Đăng nhập (đây là DoD còn lại của Day 2 + M0).
 
-**Kế tiếp (Day 4 — buffer/M0):** dọn nốt 38 lint info nếu muốn (đã dự kiến ở Day 10), ghi `docs/TROUBLESHOOTING.md` các lỗi môi trường vừa gặp, rồi chốt **Milestone M0** sau khi bạn chạy được `flutter run`.
+**Kế tiếp (Day 4 còn lại):** `docs/TROUBLESHOOTING.md` **đã xong**; còn đúng 1 việc = **bạn cài JDK 17 + tạo device** để tôi chạy `flutter run` nghiệm thu M0. (Dọn 38 lint info đã dời sang Day 10.)
+
+> 📌 **Ghi chú quy trình:** nếu chưa cài được JDK/device, **vẫn đi tiếp P1 (Day 5+) bình thường** — toàn bộ code P1 (`AppConfig`, `ApiClient`, `Result`, Riverpod provider) verify được bằng `flutter test` trên Dart VM, không cần Android toolchain. Chỉ cần device trước **Day 10** (exit P0) và **Day 24** (exit P1).
 
 ---
 
