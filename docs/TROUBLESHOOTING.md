@@ -2,6 +2,7 @@
 
 > Ghi lại **lỗi thật + lệnh đo + cách sửa** để lần sau (hoặc máy khác) không mất thời gian dò lại.
 > Ngày đo gần nhất: 21/09/2026.
+> 📦 **Danh sách link tải (JDK 17 + cmdline-tools) kèm checksum:** xem [`SETUP_WINDOWS.md`](SETUP_WINDOWS.md).
 
 ---
 
