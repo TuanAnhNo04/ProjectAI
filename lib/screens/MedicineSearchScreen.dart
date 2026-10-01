@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:image_processing_app/core/config/app_config.dart';
+
 class MedicineSearchPage extends StatefulWidget {
   @override
   _MedicineSearchPageState createState() => _MedicineSearchPageState();
@@ -28,12 +30,15 @@ class _MedicineSearchPageState extends State<MedicineSearchPage> {
       _errorMessage = '';
     });
 
-    // Tạo URL với tham số name
-    final String url =
-        'http://10.0.2.2:5000/search-medicine?name=$medicineName';
+    // Dựng URL qua AppConfig.uri: tên thuốc được encode đúng, sửa bug cũ
+    // "?name=$medicineName" (có khoảng trắng/&/dấu tiếng Việt là sai đường dẫn).
+    final url = AppConfig.uri(
+      '/search-medicine',
+      queryParameters: {'name': medicineName},
+    );
     print("Searching for medicine: $url"); // In ra URL để kiểm tra
 
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(url);
 
     if (response.statusCode == 200) {
       setState(() {

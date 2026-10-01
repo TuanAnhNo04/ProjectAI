@@ -41,3 +41,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Bản sao thư mục (KHÔNG phải mã nguồn dự án) ---
+# `ProjectAI-main/` là bản copy của chính repo nằm bên trong nó (git track 0
+# file). Quy tắc làm việc của dự án là `git add -A` -> nếu không ignore, lệnh
+# đó sẽ commit hàng nghìn file trùng lặp. Xoá thư mục này được.
+ProjectAI-main/
+# Worktree của công cụ (.kilo) — cũng là bản copy, không phải mã nguồn.
+.kilo/

@@ -135,6 +135,45 @@ git config --global core.autocrlf true
 
 ---
 
+## 9. `'flutter' is not recognized…` — mở project trên máy KHÔNG cài Flutter (30/09/2026)
+
+**Triệu chứng:** chạy bất kỳ lệnh nào của Flutter/Dart/Git đều báo *not recognized*:
+```
+'flutter' is not recognized as an internal or external command,
+operable program or batch file.
+INFO: Could not find files for the given pattern(s).
+```
+**Nguyên nhân (đã dò ra từ số đo thật, không phải phỏng đoán):**
+| Bằng chứng | Kết luận |
+|---|---|
+| `where flutter` / `where dart` / `where git` → *Could not find files* | Không có toolchain nào trong `PATH` |
+| `dir /b /ad D:\` → *The system cannot find the path specified* | **Không có ổ `D:`** |
+| `dir /b /ad C:\Users` → chỉ `Administrator`, `Public`, `Default` | Không có profile `Tuan Anh` |
+| `.dart_tool/package_config.json` → `file:///D:/flutter_windows_3.19.4-stable/flutter/...` | Project được **copy từ máy cũ**, cache trỏ ổ D: |
+| `package_config.json` → pub cache `C:/Users/Tuan%20Anh/AppData/Local/Pub/Cache/...` | Cache thuộc user `Tuan Anh`, **không tồn tại ở đây** |
+
+⇒ Đây **không phải** project hỏng; chỉ là **môi trường máy mới chưa cài toolchain**. Code Day 5 vẫn hợp lệ, chỉ là chưa chạy được lệnh.
+
+**Cách sửa (chọn 1):**
+```powershell
+# A) Cài Flutter 3.19.4 + Git, rồi chạy lại toàn bộ verify của ngày đang dở
+winget install --id Git.Git -e
+#    Flutter: tải https://docs.flutter.dev/release/archive?os=windows  -> giải nén, vd C:\src\flutter
+#    $env:Path += ";C:\src\flutter\bin;C:\src\flutter\bin\cache\dart-sdk\bin"
+flutter --version && flutter doctor
+
+# B) Quay lại máy gốc (có D:\flutter_windows_3.19.4-stable\flutter + JDK + AVD) để tiếp tục
+```
+Sau đó **bắt buộc** chạy lại vì `package_config.json` đang trỏ sai ổ đĩa:
+```powershell
+Remove-Item .dart_tool -Recurse -Force
+flutter pub get
+```
+
+⚠️ **Bài học:** luôn commit `.dart_tool` **không** (`.gitignore` đã loại), và khi copy project sang máy khác thì `flutter pub get` bắt buộc phải chạy lại — đừng tin `.dart_tool` cũ.
+
+---
+
 ## 9. Lỗi dependency (đã xử lý ở Day 1 — lưu lại để hiểu vì sao)
 
 | Lỗi `pub get` | Nguyên nhân thật | Cách đã sửa |

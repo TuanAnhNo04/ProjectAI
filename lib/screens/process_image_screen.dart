@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:image_processing_app/core/config/app_config.dart';
 import 'HistoryScreen.dart';
 import 'MedicineSearchScreen.dart';
 
@@ -42,7 +43,7 @@ class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://10.0.2.2:5000/process-image'),
+        Uri.parse('${AppConfig.baseUrl}/process-image'),
       );
       request.files
           .add(await http.MultipartFile.fromPath('image', _image!.path));

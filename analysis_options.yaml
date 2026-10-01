@@ -9,6 +9,23 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # Bản sao project do công cụ (.kilo worktree) — import đứt đoạn vì không có
+    # .dart_tool nên `flutter analyze` báo hàng loạt lỗi giả ("expect isn't
+    # defined", "Undefined name 'Colors'"...). Không phải mã nguồn dự án.
+    - .kilo/**
+    - .dart_tool/**
+    - build/**
+    # Bản sao lỗi thời của chính project nằm BÊN TRONG repo (git không track
+    # 0 file trong đó). Nó có `analysis_options.yaml` riêng nên không thừa kế
+    # `exclude` của file gốc -> mọi import trong đó đều "đứt" vì thiếu
+    # `.dart_tool`, tạo ~1000 lỗi giả cho `flutter analyze`.
+    - ProjectAI-main/**
+    # Cùng lý do: thư mục sinh tự động.
+    - android/**
+    - ios/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

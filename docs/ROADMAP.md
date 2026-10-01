@@ -112,28 +112,48 @@
 
 ## 3. GIAI ĐOẠN P1 — Nền tảng client (Day 5 → Day 14)
 
-### Day 5 — Config & HTTP client (3 giờ) 🤖✋
-- [ ] 🤖 Tạo 4 file:
+### Day 5 — Config & HTTP client (3 giờ) 🤖✋ ✅ **nghiệm thu 01/10/2026 — CI xanh, 179 test**
+- [x] 🤖 Tạo 4 file:
       - `lib/core/config/app_config.dart` — `baseUrl` đọc từ `String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000')`
       - `lib/core/network/api_client.dart` — Dio (timeout, interceptor log, chỗ gắn token)
       - `lib/core/network/api_exception.dart` — map lỗi mạng/401/404/500 → thông báo tiếng Việt
       - `lib/core/network/result.dart` — `Result<T>` (Ok/Err) tự viết, không thêm dependency
-- [ ] ✋ Chạy `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000`, in `AppConfig.baseUrl` để verify
-- [ ] **DoD:** tìm `10.0.2.2` trong `lib/` chỉ còn **1 kết quả** (trong `app_config.dart`).
+- [x] 🤖 5 màn hình `lib/screens/` bỏ nối chuỗi URL → dùng `AppConfig.baseUrl` / `AppConfig.uri(..., queryParameters:)`
+- [x] 🤖 `main()` in `AppConfig.describe()` lúc khởi động → biết app đang trỏ server nào
+- [x] 🤖 4 file test TDD: `test/core/config/app_config_test.dart` + `test/core/network/{api_client,api_exception,result}_test.dart`
+- [ ] ✋ `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000` — **cần thiết bị/AVD** (xem Day 4/M0), chưa làm được trên máy này
+- [x] ✅ `flutter test` → **179 test, `All tests passed!`** (01/10)
+- [x] **DoD:** tìm `10.0.2.2` trong `lib/` chỉ còn **1 kết quả** (trong `app_config.dart`). ✅ **đã verify** bằng `Select-String` → 4 hit, đều nằm trong `app_config.dart` (3 hit là comment)
 
-### Day 6 — Model typed (3 giờ) 🤖✋
-- [ ] 🤖 Tạo `lib/data/models/`: `medicine.dart` (Medicine_Name, Composition, Uses, Side_effects, Manufacturer, 3 tỉ lệ review), `history_item.dart` (id, filepath, searchResults), `user.dart`, `analysis_result.dart`
-- [ ] 🤖 Mỗi model: `fromJson` / `toJson` / `copyWith`, **không dùng `freezed`** (giữ ít dependency)
-- [ ] 🤖 Test `test/data/models/*_test.dart` bằng **JSON thật lấy từ server** (cách này phát hiện sai tên trường ngay lập tức)
-- [ ] **DoD:** `flutter test test/data` xanh; không còn chỗ nào parse JSON thủ công.
+### Day 6 — Model typed (3 giờ) 🤖✋ ✅ **nghiệm thu 01/10/2026 — CI xanh, 179 test**
+- [x] 🤖 Tạo `lib/data/models/` (**5** file, thêm `json_utils.dart` dùng chung):
+      - `medicine.dart` — `Medicine` + `MedicineSearchResponse`; **8 khoá JSON gom vào hằng số** (`Medicine.keyName`…) nên gõ sai tên trường là compiler bắt
+      - `history_item.dart` — `HistoryItem` (id, filepath, searchResults, createdAt) + `HistoryResponse`
+      - `user.dart` — `User` + `AuthSession` (token tách vòng đời riêng cho Day 11)
+      - `analysis_result.dart` — `AnalysisResult` (+ `toDisplayLines()` thay cho `split(': ')`)
+      - `json_utils.dart` — `asString/asInt/asPercent/asJsonMap/...` + `guard` dùng chung
+- [x] 🤖 Mỗi model có `fromJson` / `toJson` / `copyWith` / `==` / `hashCode`, **không dùng `freezed`** (không thêm dependency nào)
+- [x] 🤖 `copyWith` dùng sentinel `notProvided` để phân biệt *"không truyền"* với *"truyền `null`"* (xoá được field thật)
+- [x] 🤖 Test `test/data/models/*_test.dart` (**5 file, ~90 test**) bằng JSON thật trong `fixtures/server_samples.dart`
+- [x] ✅ `flutter test` → xanh (01/10)
+- [x] ⚠️ **Một nửa DoD:** *"không còn chỗ nào parse JSON thủ công"* — **trong `lib/data/models/` đã sạch 100%**; `lib/screens/` vẫn còn `jsonDecode(...)` + `['Medicine_Name']` vì **Day 9 mới nối UI vào port** (không sửa vội để không đụng test Day 3).
+- [x] ✅ **DoD đạt** (01/10): `flutter test` xanh
 
-### Day 7 — Ports (tầng domain, không import Flutter) (2 giờ) 🤖✋
-- [ ] 🤖 Tạo `lib/domain/ports/`:
-      - `medicine_analyzer.dart` → `abstract interface class MedicineAnalyzer { Future<AnalysisResult> analyze(String imagePath); String get capability; }`
-      - `medicine_repository.dart` → `search(name)`, `history()`, `deleteHistory(id)`
-      - `auth_repository.dart` → `login(u,p)`, `register(u,p,e)`, `logout()`, `currentToken()`
-      - `agent_client.dart` → `Stream<AgentEvent> chat({sessionId, message})` + `AgentEvent` (TokenDelta, ToolCallStarted, Citation, Done, Failure)
-- [ ] **DoD:** trong `lib/domain/**` **không** có `import 'package:flutter/...'` (kiểm bằng `Select-String`).
+### Day 7 — Ports (tầng domain, không import Flutter) (2 giờ) 🤖✋ ✅ **nghiệm thu 01/10/2026 — CI xanh, 179 test**
+- [x] 🤖 Tạo `lib/domain/ports/` — **4 file, đúng chữ ký trong kế hoạch**:
+      - `medicine_analyzer.dart` → `MedicineAnalyzer`: `analyze(imagePath)` + `capability` (bảng adapter trong doc cho thấy Day 26 chỉ cần thêm adapter, **không sửa port**)
+      - `medicine_repository.dart` → `search(name)` / `history()` / `deleteHistory(id)`
+      - `auth_repository.dart` → `login(u,p)` / `register(u,p,e)` / `logout()` / `currentToken()`
+      - `agent_client.dart` → `AgentClient.chat({sessionId, message})` + `AgentEvent` **sealed** 5 biến thể: `TokenDelta`, `ToolCallStarted`, `Citation`, `Done`, `Failure`
+- [x] 🤖 Test `test/domain/ports/`: `domain_is_pure_dart_test.dart` (**canh kiến trúc** — 3 test) + `agent_client_test.dart` (10 test, có adapter giả làm khuôn cho Day 22)
+- [x] ✅ **DoD ĐẠT:** `Select-String 'package:flutter/' lib\domain\*.dart` → **0 kết quả**. Toàn bộ import của domain chỉ là: `data/models/{user,analysis_result,history_item,medicine}.dart` + `core/network/api_exception.dart` — **không Flutter, không `dart:ui`**.
+- [x] ✅ **DoD phụ (tự thêm):** test chặn domain import `data/adapters/` · `screens/` · `core/providers` → domain không được biết chi tiết cài đặt.
+- [x] ✅ `flutter test` → xanh, gồm 3 test **canh kiến trúc** trong `test/domain/ports/` (01/10)
+
+**3 lựa chọn thiết kế đáng ghi lại:**
+1. **`Failure` mang `AppException` thay vì `Object`** → UI hiển thị lỗi tiếng Việt mà **không cần `try/catch`**, đồng bộ với `Result`/`guard()` của Day 5. Đồng thời doc nhấn mạnh: lỗi **giữa chừng** phải đóng gói thành event, không được làm stream văng exception (UI sẽ mất hết tin nhắn đã nhận).
+2. **`search()` trả `MedicineSearchResponse`** chứ không phải `List<Medicine>` → giữ được `query` + `total` mà server echo lại.
+3. **`sealed AgentEvent`** → thêm biến thể mới sẽ làm **hỏng compile** mọi `switch` chưa xử lý, thay vì rơi nhánh im lặng. Có test `switch` đủ 5 nhánh để bảo vệ điều đó.
 
 ### Day 8 — Adapter remote (nối Flask hiện tại) (4 giờ) 🤖✋
 - [ ] 🤖 `lib/data/adapters/remote_analyzer.dart` — multipart field `image` → `POST /process-image` → map `medicine_info` vào `AnalysisResult`
@@ -340,9 +360,9 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 | 2 | Cấu hình nền tảng | ✋🤖 | `flutter run` không crash | ✅ 21/09 (run ⏳ chờ JDK) |
 | 3 | Test + CI | 🤖✋ | `flutter test` xanh, CI xanh | ✅ 21/09 |
 | 4 | Buffer → **M0** | ✋ | Day 1–3 tick hết | ☐ |
-| 5 | AppConfig + ApiClient | 🤖✋ | chỉ còn 1 chỗ có `10.0.2.2` | ☐ |
-| 6 | Model typed | 🤖✋ | test models xanh | ☐ |
-| 7 | Ports | 🤖✋ | domain không import Flutter | ☐ |
+| 5 | AppConfig + ApiClient | 🤖✋ | chỉ còn 1 chỗ có `10.0.2.2` | ✅ 01/10 |
+| 6 | Model typed | 🤖✋ | test models xanh | ✅ 01/10 |
+| 7 | Ports | 🤖✋ | domain không import Flutter | ✅ 01/10 |
 | 8 | Adapter remote | 🤖✋ | 5 luồng cũ chạy | ☐ |
 | 9 | Nối UI + Riverpod | 🤖✋ | screens không còn `http` | ☐ |
 | 10 | Bug + dead code | 🤖✋ | `analyze` sạch | ☐ |
@@ -454,6 +474,170 @@ Sau đó `flutter run -d emulator-5554` → app phải vào màn Đăng nhập (
 **Kế tiếp (Day 4 còn lại):** `docs/TROUBLESHOOTING.md` **đã xong**; còn đúng 1 việc = **bạn cài JDK 17 + tạo device** để tôi chạy `flutter run` nghiệm thu M0. (Dọn 38 lint info đã dời sang Day 10.)
 
 > 📌 **Ghi chú quy trình:** nếu chưa cài được JDK/device, **vẫn đi tiếp P1 (Day 5+) bình thường** — toàn bộ code P1 (`AppConfig`, `ApiClient`, `Result`, Riverpod provider) verify được bằng `flutter test` trên Dart VM, không cần Android toolchain. Chỉ cần device trước **Day 10** (exit P0) và **Day 24** (exit P1).
+
+---
+
+### 30/09/2026 — Day 5 🟡 (code + DoD xong, **verify bị chặn: máy không có Flutter SDK**)
+
+**Code Day 5 đã có đủ 4 file (không cần viết lại):**
+- `lib/core/config/app_config.dart` — `baseUrl` từ `--dart-define=API_BASE_URL`; `apiPrefix`, timeout, `flavor`; `uri()` encode query; `validate()` fail-fast; `describe()` để log.
+- `lib/core/network/api_client.dart` — bọc `Dio`, `get/post/delete/upload`, `AuthInterceptor` (gắn token, log, báo 401) + `redactHeaders/redactBody` để **không lộ mật khẩu/token**.
+- `lib/core/network/api_exception.dart` — `AppExceptionKind` 13 nhánh + thông báo tiếng Việt; múc `detail` từ body Flask/FastAPI.
+- `lib/core/network/result.dart` — `sealed Result<T>` (`Ok`/`Err`) + `guard()`.
+- `lib/main.dart` đã in `AppConfig.describe()`; cả 5 màn hình `lib/screens/` đã dùng `AppConfig` thay cho nối chuỗi URL.
+
+**Test Day 5 đã viết (TDD), 4 file:** `test/core/config/app_config_test.dart`, `test/core/network/api_client_test.dart` (dùng `_FakeAdapter` chặn socket, chạy offline), `api_exception_test.dart`, `result_test.dart`.
+
+**✅ DoD đạt:** `Select-String '10\.0\.2\.2' lib\*.dart` → **4 hit, tất cả trong `app_config.dart`** (3 hit là comment, 1 hit là `defaultValue`). Không còn URL hardcode ở màn hình nào.
+
+**⛔ BLOCKER — chưa verify được bằng máy:**
+> Máy đang mở code này **không cài Flutter, Dart, Git**: `where flutter` / `where dart` / `where git` → *Could not find files*; không có ổ `D:` (`.dart_tool/package_config.json` vẫn trỏ `D:/flutter_windows_3.19.4-stable/flutter` và pub cache `C:/Users/Tuan Anh/...` → project được **copy từ máy cũ**, môi trường ở đây không tương thích).
+> ⇒ `flutter test test/core`, `dart format .`, `flutter analyze` **đều chưa chạy được**.
+
+**Việc cần làm để nghiệm thu Day 5 (mất 5 phút nếu đã có Flutter):**
+```powershell
+flutter pub get
+flutter test test/core      # kỳ vọng: All tests passed
+dart format --output=none --set-exit-if-changed .
+flutter analyze --no-fatal-infos
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000   # log phải in "MedAssist → API: dev http://10.0.2.2:5000 (http · timeout 15s/60s)"
+```
+Nếu `flutter test` đỏ → sửa tới xanh rồi mới tick nốt 2 ô ✋ ở Day 5 và chuyển sang **Day 6 (Model typed)**.
+
+**Day 6 — Model typed (🟡 code xong, cùng blocker Flutter SDK) — viết trước để tiết kiệm quota**
+
+`lib/data/models/` — **5 file, không thêm dependency nào** (`freezed` bị loại như kế hoạch):
+| File | Nội dung |
+|---|---|
+| `json_utils.dart` | `asString/asStringOrNull/asInt/asDouble/asPercent/asJsonMap/asJsonList/asDateTime` + `decodeJsonObject` + sentinel `notProvided`/`pickChanged` cho `copyWith` |
+| `medicine.dart` | `Medicine` (8 khoá JSON nằm trong hằng số) + `MedicineSearchResponse` |
+| `history_item.dart` | `HistoryItem` + `HistoryResponse` |
+| `user.dart` | `User` + `AuthSession` |
+| `analysis_result.dart` | `AnalysisResult` + `toDisplayLines()` |
+
+`test/data/models/` — **5 file + `fixtures/server_samples.dart`**, ~90 test:
+| File | Nội dung |
+|---|---|
+| `fixtures/server_samples.dart` | JSON **thật** theo contract Flask (`search-medicine`, `process-image`, `history`, `login`, `register`) |
+| `medicine_test.dart` | 8 trường · null/rỗng/số-thay-chuỗi · round-trip · `copyWith` · `==`/`hashCode` · response |
+| `history_item_test.dart` | bản ghi **thiếu `id`** bị lọc · `created_at` · parsing lỗi |
+| `user_test.dart` | **bảo mật**: `toJson()` không bao giờ có mật khẩu · token · validate email |
+| `analysis_result_test.dart` | 3 hình dạng body · `toDisplayLines()` giữ nguyên `:` trong dữ liệu |
+| `json_utils_test.dart` | mọi hàm ép kiểu + HTML lỗi Flask → `parsing` chứ không `FormatException` |
+
+**3 quyết định thiết kế đáng ghi lại:**
+1. **Hàm "đọc" không bao giờ ném, hàm "ép hình dạng" mới ném.** Server là CSV scrape nên `null`/`""`/`"93%"`/`93` là chuyện thường — mất 1 ô dữ liệu còn hơn sập màn hình. Chỉ khi body sai *hình dạng* mới ném `AppExceptionKind.parsing` (khung đã dựng sẵn ở Day 5), adapter bọc `guard()` là xong.
+2. **`User` không có field `password`.** Mật khẩu là tham số của `toCredentialsJson(password:)` rồi biến mất — chống rò rỉ *mặc định* thay vì dựa vào kỷ luật. Có test riêng canh điều này.
+3. **`copyWith` dùng sentinel `notProvided`.** `copyWith({String? x})` không phân biệt được *"không truyền"* và *"truyền `null`"*; sentinel là cách duy nhất để xoá được field thật.
+
+**⚠️ Chênh lệch có chủ đích với DoD Day 6:** *"không còn chỗ nào parse JSON thủ công"* — trong `lib/data/models/` đã sạch 100%, nhưng `lib/screens/` vẫn còn `jsonDecode(...)` + `['Medicine_Name']` vì **Day 9 mới nối UI vào port**; sửa sớm sẽ đụng `test/screens/*` của Day 3. Mọi màn hình đã có sẵn `XxxResponse.parse(body)` để Day 9 chỉ cần thay 1 dòng.
+
+**Kiểm tra tĩnh đã làm được (không cần Flutter):** cân bằng `{}` và `()` của cả 11 file đều khớp; không còn tham chiếu `_pick`/`_unset` cũ; 0 dependency mới trong `pubspec.yaml`.
+
+**Nghiệm thu Day 6 (sau khi cài Flutter):**
+```powershell
+flutter test test/data        # kỳ vọng: ~90 test, All tests passed
+flutter analyze --no-fatal-infos
+```
+Nếu đỏ, sửa tới xanh rồi tick nốt ô DoD Day 5 + Day 6.
+
+---
+
+### 01/10/2026 — 🟢 **ĐÃ CÀI TOOLCHAIN + VERIFY XANH Day 5–7** (thay thế mục "30/09 chưa verify")
+
+**Đã cài (mất ~20 phút, chạy nền xong trong 1 phiên):**
+
+| Tool | Phiên bản | Vị trí | Ghi chú |
+|---|---|---|---|
+| Flutter | **3.19.4** (stable) | `C:\src\flutter` | SHA256 đã verify khớp `b8f90abc…`; Dart 3.3.2; cache 1.9 GB |
+| Git | **2.56.0** | `C:\src\Git` | Flutter **bắt buộc** có git; cài `/VERYSILENT /DIR=C:\src\Git` |
+
+Đã thêm vào **user PATH**: `C:\src\flutter\bin` · `C:\src\Git\cmd`.
+`git config --global`: `safe.directory=*` (tránh git kẹt ở prompt "dubious ownership" — lần đầu `flutter --version` treo 5 tiến trình `git`), `core.longpaths=true`.
+
+**Sau khi cài phải xoá `.dart_tool` cũ** — nó trỏ `D:/flutter_windows_3.19.4-stable` của máy trước:
+```powershell
+Remove-Item .dart_tool -Recurse -Force ; flutter pub get    # -> "Got dependencies!" (66 gói)
+```
+
+**✅ Kết quả CI (đúng 3 lệnh trong `.github/workflows/ci.yml`):**
+
+| Bước | Kết quả |
+|---|---|
+| `dart format --output=none --set-exit-if-changed .` | **exit 0** — không file nào cần format |
+| `flutter analyze --no-fatal-infos` | **50 issues, 0 warning, 0 error** (toàn bộ là `info` — hợp lệ, `--no-fatal-infos` cho phép; dọn ở Day 10) |
+| `flutter test` | **`00:07 +179: All tests passed!`** |
+
+**🔥 5 lỗi THẬT mà chỉ chạy test mới phát hiện** (không có `flutter analyze` thì không thấy):
+
+| # | Lỗi | Triệu chứng | Nguyên nhân | Cách sửa |
+|---|---|---|---|---|
+| 1 | `AppConfig.uri()` sinh `//history` | `http://10.0.2.2:5000//history` | `_join()` gọi `lead('')` khi `apiPrefix` rỗng → `'/'` | bỏ hẳn đoạn rỗng trước khi `join()` |
+| 2 | `pickChanged<T>` không suy luận được kiểu | `String? can't be assigned to String` (14 lỗi) | khai báo `T current` → Dart suy `T` từ **kiểu trả về** trước | đổi thành `T? current` |
+| 3 | `MedicineSearchResponse.total` | `can't have a value of 'null'` | `final int total` + `this.total` (mặc định null) | tách `_serverTotal` + getter `total` |
+| 4 | `copyWith(x: 99)` với field `double?` | `type 'int' is not a subtype of type 'double?'` | ép kiểu trực tiếp | thêm `_toPercent()` quy `num → double` |
+| 5 | Test upload fail trên **Windows** | `PathAccessException errno 32` | xoá thư mục tạm trong `finally` khi Dio còn giữ handle | chuyển sang `addTearDown` + bỏ qua `FileSystemException` |
+
+Ngoài ra 1 lỗi `MapEntry<String,dynamic>` ≠ `MapEntry<String,String>` khiến `contains` trượt dù giá trị giống hệt (`==` của `MapEntry` so cả `runtimeType`) — đổi sang so sánh `'key=value'`.
+
+> 💡 **Đây là lý do đáng để cài toolchain sớm.** 5 lỗi trên đều là lỗi *logic/typing* mà **đếm `{}` không bắt được** — đếm ngoặc chỉ bắt được lỗi cú pháp.
+
+**⚠️ Phát hiện thêm: có 2 bản sao thư mục của project nằm bên trong chính nó:**
+
+| Thư mục | Git track | Ghi chú |
+|---|---|---|
+| `ProjectAI-main/` | **0 / 153 file** | bản copy cũ, có `analysis_options.yaml` riêng |
+| `.kilo/worktrees/…` | 0 | worktree của công cụ |
+
+Chúng làm `flutter analyze` báo **1014 lỗi giả** (mọi import trong đó "đứt" vì không có `.dart_tool`). Đã xử lý **không xoá file nào**:
+- `analysis_options.yaml` → thêm `exclude: .kilo/**, ProjectAI-main/**, .dart_tool/**, build/**, android/**, ios/**` → **1014 → 50**
+- `.gitignore` → thêm `ProjectAI-main/` và `.kilo/`. **Quan trọng:** quy tắc làm việc của dự án là `git add -A`, không ignore thì lệnh đó sẽ nuốt hàng nghìn file trùng lặp.
+- ⏳ Hai thư mục này **vẫn còn trên đĩa** — xoá được bất cứ lúc nào (git không track file nào trong đó).
+
+**Trạng thái sau verify:**
+
+| Ngày | Code | DoD | Test |
+|---|---|---|---|
+| Day 5 — Config + HTTP | ✅ | ✅ | ✅ xanh |
+| Day 6 — Models | ✅ | ⚠️ 1 nửa (có chủ ý, xem mục Day 6) | ✅ xanh |
+| Day 7 — Ports | ✅ | ✅ | ✅ xanh |
+
+**Nghiệm thu Day 5–7:** ⛔→✅ **đã xong** (còn 1 ô ✋ của Day 5 là `flutter run` cần thiết bị thật/AVD — xem Day 4/M0).
+
+`lib/domain/ports/` — **4 file, đúng chữ ký kế hoạch yêu cầu**:
+
+| File | Nội dung |
+|---|---|
+| `medicine_analyzer.dart` | `MedicineAnalyzer`: `analyze(imagePath)` + `capability` |
+| `medicine_repository.dart` | `search(name)` · `history()` · `deleteHistory(id)` |
+| `auth_repository.dart` | `login` · `register` · `logout` · `currentToken` |
+| `agent_client.dart` | `AgentClient.chat({sessionId, message})` + `AgentEvent` sealed 5 nhánh |
+
+`test/domain/ports/` — 2 file, 13 test:
+- `domain_is_pure_dart_test.dart` — **test canh kiến trúc** (3 test): cấm `package:flutter/`, `dart:ui`, `dart:html`; cấm domain import `data/adapters/` · `screens/` · `core/providers`; và có test phụ *"có ít nhất 1 file"* để chắc chắn test không pass giả do sai đường dẫn.
+- `agent_client_test.dart` — 10 test cho 5 biến thể + `switch` đủ 5 nhánh + `_FakeAgentClient` làm khuôn cho adapter thật ở Day 22.
+
+**✅ DoD đạt, đo bằng `Select-String`:**
+```
+Select-String -Path lib\domain\*.dart -Pattern 'package:flutter/'   -> 0 kết quả
+```
+Toàn bộ import của tầng domain chỉ gồm:
+`data/models/{user, analysis_result, history_item, medicine}.dart` + `core/network/api_exception.dart`.
+
+**3 lựa chọn thiết kế:**
+1. **`Failure` mang `AppException`** → UI hiện lỗi tiếng Việt không cần `try/catch`, đồng bộ với `Result`/`guard()` (Day 5). Doc cảnh báo rõ: lỗi **giữa chừng** phải đóng gói thành event, không được làm stream văng exception — nếu không UI sẽ mất toàn bộ tin nhắn đã nhận.
+2. **`search()` trả `MedicineSearchResponse`** thay vì `List<Medicine>` → giữ `query` + `total` server echo lại.
+3. **`sealed AgentEvent`** → thêm biến thể mới sẽ **hỏng compile** mọi `switch` chưa xử lý. Test `switch` đủ 5 nhánh bảo vệ đúng điều đó.
+
+**Lỗi phát hiện khi tự kiểm tra (đáng ghi vì không có `flutter analyze`):**
+`agent_client.dart` thiếu 1 dấu `}` đóng class `Done` → lệch 14/13. Bắt được bằng cách đếm `{`/`}` bằng PowerShell. Sau khi sửa: cả 6 file Day 5–7 đều cân bằng.
+> 💡 **Bài học:** khi không chạy được `analyze`, **đếm `{}` và `()` trong từng file** là bước rẻ nhất để bắt lỗi cú pháp cắt dính. Nên làm sau **mỗi** lần sửa file, không chỉ lúc nghiệm thu.
+
+**Nghiệm thu Day 7 (sau khi cài Flutter):**
+```powershell
+flutter test test/domain      # 13 test
+flutter analyze --no-fatal-infos
+```
 
 ---
 
