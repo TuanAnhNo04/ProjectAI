@@ -155,12 +155,18 @@
 2. **`search()` trả `MedicineSearchResponse`** chứ không phải `List<Medicine>` → giữ được `query` + `total` mà server echo lại.
 3. **`sealed AgentEvent`** → thêm biến thể mới sẽ làm **hỏng compile** mọi `switch` chưa xử lý, thay vì rơi nhánh im lặng. Có test `switch` đủ 5 nhánh để bảo vệ điều đó.
 
-### Day 8 — Adapter remote (nối Flask hiện tại) (4 giờ) 🤖✋
-- [ ] 🤖 `lib/data/adapters/remote_analyzer.dart` — multipart field `image` → `POST /process-image` → map `medicine_info` vào `AnalysisResult`
-- [ ] 🤖 `lib/data/adapters/remote_auth_repository.dart` — `/login`, `/register` (lưu token nếu server trả), `/logout`
-- [ ] 🤖 `lib/data/adapters/remote_medicine_repository.dart` — `/search-medicine` (dùng `Uri(queryParameters:)` để encode), `/history`, `DELETE /history/{id}`
-- [ ] ✋ Chạy server Flask → test tay 5 luồng: login sai, login đúng, upload ảnh, search "panadol", xoá 1 history
+### Day 8 — Adapter remote (nối Flask hiện tại) (4 giờ) 🤖✋ 🟢 **code + test xong 03/10/2026** (còn 1 ô ✋ chạy Flask test tay)
+- [x] 🤖 `lib/data/adapters/remote_analyzer.dart` — `RemoteAnalyzer implements MedicineAnalyzer`; multipart field `image` → `POST /process-image`; map `medicine_info` vào `AnalysisResult`; `capability = 'remote-flask'`; chặn sớm `imagePath` rỗng (validation, không gửi request)
+- [x] 🤖 `lib/data/adapters/remote_auth_repository.dart` — `RemoteAuthRepository implements AuthRepository`; `/login`, `/register` (body dựng từ `User.toCredentialsJson` — mật khẩu không nằm lại trong object nào), `/logout` best-effort, `currentToken`; tách cổng `TokenStore` (+ `InMemoryTokenStore`) để Day 11 thay bằng `flutter_secure_storage` **không sửa adapter**; coi `{"success": false}` kèm HTTP 200 là đăng nhập thất bại
+- [x] 🤖 `lib/data/adapters/remote_medicine_repository.dart` — `/search-medicine` (tên thuốc được `AppConfig.uri` encode, sửa bug nối chuỗi cũ), `/history` (bản ghi thiếu `id` bị lọc trong model), `DELETE /history/{id}`
+- [x] ✅ **Test tự động:** thêm `test/data/adapters/` — 4 file (1 helper `fake_http.dart` + 3 test), **21 test** dùng `HttpClientAdapter` giả + JSON thật trong `fixtures/server_samples.dart` (không cần mạng, không cần Flask): kiểm method/URL/query/multipart field, token lưu/xoá, `success:false`, 401/404/500/parsing
+- [ ] ✋ Chạy server Flask → test tay 5 luồng: login sai, login đúng, upload ảnh, search "panadol", xoá 1 history (**cần server Flask chạy — chưa đủ điều kiện trên máy này**)
 - [ ] **DoD:** app chạy được toàn bộ luồng cũ nhưng qua adapter mới (chưa cần sửa UI vội — Day 9 mới nối).
+
+> **Nghiệm thu Day 8 (03/10/2026, Flutter 3.19.4 / Dart 3.3.2):** `flutter test` → **200 test, All tests passed!** (179 → 200, +21 test adapter) · `flutter analyze --no-fatal-infos` → **50 info, 0 warning, 0 error** (không phát sinh issue mới) · `dart format --output=none --set-exit-if-changed lib/data/adapters test/data/adapters` → **exit 0**.
+> **3 quyết định thiết kế:** (1) `TokenStore` là cổng riêng để Day 11 gắn `flutter_secure_storage` mà không đụng adapter; (2) adapter **không import Flutter** (chỉ Dio + model + port) nên test chạy trên Dart VM; (3) body đăng nhập dựng từ `User.toCredentialsJson` — cấu trúc dữ liệu *buộc* mật khẩu phải là tham số rồi biến mất.
+> **Môi trường:** `.dart_tool` cũ trỏ `C:/Users/Administrator/...` (máy/user khác) khiến `package:flutter` không resolve → đã sửa theo `docs/TROUBLESHOOTING.md` mục 8: `Remove-Item .dart_tool -Recurse -Force; flutter pub get`.
+
 
 ### Day 9 — Nối UI vào port + Riverpod (4 giờ) 🤖✋
 - [ ] 🤖 `lib/core/providers.dart`: `ProviderScope` + provider cho ApiClient, 3 repository, analyzer
