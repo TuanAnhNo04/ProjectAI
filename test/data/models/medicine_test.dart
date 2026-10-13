@@ -13,18 +13,18 @@ import 'fixtures/server_samples.dart';
 
 /// Hộp `results` đầu tiên của body thật.
 Map<String, dynamic> _firstRawMedicine() =>
-    ((jsonDecode(searchMedicineBody) as Map<String, dynamic>)['results']! as List)
+    ((jsonDecode(searchMedicineBody) as Map<String, dynamic>)['results']!
+            as List)
         .first as Map<String, dynamic>;
 
 Map<String, dynamic> _secondRawMedicine() =>
-    ((jsonDecode(searchMedicineBody) as Map<String, dynamic>)['results']! as List)[1]
-        as Map<String, dynamic>;
+    ((jsonDecode(searchMedicineBody) as Map<String, dynamic>)['results']!
+        as List)[1] as Map<String, dynamic>;
 
 /// Match: lỗi phải là `AppException` kiểu `parsing` — không phải crash,
 /// không phải `FormatException` lọt lên tầng UI.
 final Matcher throwsParsing = throwsA(
-  isA<AppException>()
-      .having((e) => e.kind, 'kind', AppExceptionKind.parsing),
+  isA<AppException>().having((e) => e.kind, 'kind', AppExceptionKind.parsing),
 );
 
 void main() {

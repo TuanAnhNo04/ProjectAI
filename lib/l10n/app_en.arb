@@ -1,0 +1,94 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "MedAssist",
+  "@appTitle": {
+    "description": "Application name shown in the task switcher and app bar."
+  },
+
+  "loginTitle": "Sign in",
+  "loginSubtitle": "Medicine information you can rely on",
+  "usernameLabel": "Username",
+  "passwordLabel": "Password",
+  "emailLabel": "Email",
+  "signIn": "Sign in",
+  "signUp": "Sign up",
+  "signUpTitle": "Create an account",
+  "signUpLink": "Create an account",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "signInFailed": "Sign-in failed.",
+  "signUpFailed": "Sign-up failed.",
+  "processFailed": "Could not analyse the image.",
+  "createAccount": "Create an account",
+  "signOut": "Sign out",
+  "signOutConfirmTitle": "Sign out?",
+  "signOutConfirmBody": "You will need to sign in again to continue.",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "delete": "Delete",
+
+  "processImageTitle": "Scan medicine",
+  "pickImage": "Pick image",
+  "processImage": "Analyse",
+  "noImagePicked": "No image selected yet",
+  "history": "History",
+  "search": "Search",
+  "resultsTitle": "Results:",
+  "noResults": "No results.",
+  "processSuccess": "Done!",
+  "searchTitle": "Search medicine",
+  "searchHint": "Medicine name",
+  "searchEmptyQuery": "Please enter a medicine name.",
+
+  "historyTitle": "Processing history",
+  "historyEmpty": "No processing history",
+  "historyLoadFailed": "Could not load history.",
+  "searchResultsLabel": "Search results:",
+  "historyFile": "File:",
+  "deleteRecordTitle": "Delete this record?",
+  "deleteRecordBody": "This record will be removed from your history.",
+  "deleted": "Deleted",
+  "deleteFailed": "Could not delete the record",
+
+  "retry": "Retry",
+  "offline": "Offline",
+  "offlineUpdated": "Offline · updated {time}",
+  "@offlineUpdated": {
+    "description": "Banner shown when showing cached data because the network failed.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "05/10/2026 14:30"
+      }
+    }
+  },
+
+  "noInformation": "No information",
+  "medicineName": "Medicine name",
+  "composition": "Ingredients",
+  "uses": "Uses",
+  "sideEffects": "Side effects",
+  "manufacturer": "Manufacturer",
+  "reviewExcellent": "Excellent %",
+  "reviewAverage": "Average %",
+  "reviewPoor": "Poor %",
+
+  "validationUsernameRequired": "Please enter your username.",
+  "validationPasswordRequired": "Please enter your password.",
+  "validationPasswordTooShort": "Password must be at least {length} characters.",
+  "@validationPasswordTooShort": {
+    "placeholders": {
+      "length": {
+        "type": "int"
+      }
+    }
+  },
+  "validationEmailRequired": "Please enter your email address.",
+  "validationEmailInvalid": "That email address is not valid.",
+
+  "medicalDisclaimer": "For reference only. This does not replace advice from a doctor or pharmacist.",
+  "@medicalDisclaimer": {
+    "description": "Mandatory medical disclaimer shown on result and chat screens. Never fabricate sources or medical claims."
+  }
+}

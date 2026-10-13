@@ -23,9 +23,7 @@ class AnalysisResult {
         // Ưu tiên `medicines` (hợp đồng mới) -> `medicine_info` (Flask cũ)
         // -> `search_results` (dạng lưu trong history/cache).
         medicines: Medicine.listFromJson(
-          json[keyMedicines] ??
-              json[keyMedicineInfo] ??
-              json[keySearchResults],
+          json[keyMedicines] ?? json[keyMedicineInfo] ?? json[keySearchResults],
           keyMedicineInfo,
         ),
         text: asStringOrNull(json[keyText]),

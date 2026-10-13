@@ -47,7 +47,8 @@ void main() {
       expect(asDoubleOrNull('abc'), isNull);
     });
 
-    test('NaN / Infinity bị loại (JSON không có nhưng CSV parse có thể sinh)', () {
+    test('NaN / Infinity bị loại (JSON không có nhưng CSV parse có thể sinh)',
+        () {
       expect(asDoubleOrNull(double.nan), isNull);
       expect(asDoubleOrNull(double.infinity), isNull);
     });
@@ -82,7 +83,8 @@ void main() {
 
   group('asJsonMap / asJsonList', () {
     test('map khoá không phải String vẫn ép được', () {
-      expect(asJsonMap(<int, Object?>{1: 'a'}, 'f'), <String, dynamic>{'1': 'a'});
+      expect(
+          asJsonMap(<int, Object?>{1: 'a'}, 'f'), <String, dynamic>{'1': 'a'});
     });
 
     test('sai hình dạng -> AppException parsing kèm tên trường', () {
@@ -109,7 +111,8 @@ void main() {
     });
 
     test('parsingError có message tiếng Việt cho UI', () {
-      expect(parsingError('chi tiet').message, contains('không đúng định dạng'));
+      expect(
+          parsingError('chi tiet').message, contains('không đúng định dạng'));
     });
   });
 

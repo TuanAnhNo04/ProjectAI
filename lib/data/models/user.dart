@@ -129,5 +129,4 @@ class AuthSession {
 }
 
 /// Cố ý giản dị: chỉ chặn rõ ràng là sai, không chặn nhầm email hợp lệ.
-final RegExp _emailPattern =
-    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');

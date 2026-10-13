@@ -1,0 +1,17 @@
+# Cấu hình sinh code i18n cho `flutter gen-l10n` (Day 13).
+#
+# `synthetic-package: false` + `output-dir` nằm trong `lib/` để file sinh ra
+# được import bằng đường dẫn **tường minh**
+# (`package:image_processing_app/l10n/generated/app_localizations.dart`).
+# Cách này không phụ thuộc "synthetic package" nên `flutter gen-l10n` chạy
+# được ngay cả khi chưa có mạng — đúng yêu cầu bảo mật của dự án.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated
+synthetic-package: false
+nullable-getter: false
+
+# Ngôn ngữ mặc định khi máy chưa đặt ngôn ngữ nào hợp lệ.
+preferred-supported-locales: [vi, en]

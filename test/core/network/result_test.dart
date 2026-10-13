@@ -104,7 +104,8 @@ void main() {
     });
 
     test('không nuốt lỗi khi body trả về lỗi khi dựng Result', () async {
-      final r = await guard<String>(() async => throw FormatException('x'));
+      final r =
+          await guard<String>(() async => throw const FormatException('x'));
 
       expect(r.errorOrNull?.kind, AppExceptionKind.unknown);
     });

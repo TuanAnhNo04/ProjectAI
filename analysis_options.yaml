@@ -25,6 +25,9 @@ analyzer:
     # Cùng lý do: thư mục sinh tự động.
     - android/**
     - ios/**
+    # File sinh ra bởi `flutter gen-l10n` (Day 13) — không sửa tay, nên không
+    # lint (nếu không sẽ báo `use_super_parameters` vĩnh viễn).
+    - lib/l10n/generated/**
 
 linter:
   # The lint rules applied to this project can be customized in the

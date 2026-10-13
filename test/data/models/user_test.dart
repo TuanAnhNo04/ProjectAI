@@ -82,7 +82,7 @@ void main() {
           reason: e,
         );
       }
-      expect(User(username: 'a').hasValidEmail, isFalse);
+      expect(const User(username: 'a').hasValidEmail, isFalse);
     });
   });
 
@@ -90,13 +90,13 @@ void main() {
     const secret = 'Bicam@0110';
 
     test('toJson() KHÔNG chứa password', () {
-      final user = User(username: 'tuananh', email: 'a@b.co');
+      const user = User(username: 'tuananh', email: 'a@b.co');
 
       expect(user.toJson().toString(), isNot(contains('password')));
     });
 
     test('toJson() không đổi trên cả vòng đời', () {
-      final user = User(username: 'tuananh');
+      const user = User(username: 'tuananh');
 
       user.toCredentialsJson(password: secret);
 
@@ -104,7 +104,8 @@ void main() {
     });
 
     test('chỉ toCredentialsJson mới chứa mật khẩu, và đúng 1 lần', () {
-      final body = User(username: 'tuananh').toCredentialsJson(password: secret);
+      final body =
+          const User(username: 'tuananh').toCredentialsJson(password: secret);
 
       expect(body['username'], 'tuananh');
       expect(body['password'], secret);
@@ -129,7 +130,7 @@ void main() {
 
   group('copyWith / ==', () {
     test('copyWith đổi email, giữ username', () {
-      final u = const User(id: 1, username: 'a', email: 'old@b.co');
+      const u = User(id: 1, username: 'a', email: 'old@b.co');
 
       final changed = u.copyWith(email: 'new@b.co');
 

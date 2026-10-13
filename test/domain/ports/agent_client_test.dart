@@ -79,7 +79,8 @@ void main() {
 
     test('request bị huỷ vẫn là Failure nhưng isSilent để UI im', () {
       const e = Failure(
-        AppException(kind: AppExceptionKind.canceled, message: 'Yêu cầu đã bị huỷ.'),
+        AppException(
+            kind: AppExceptionKind.canceled, message: 'Yêu cầu đã bị huỷ.'),
       );
 
       expect(e.error.isSilent, isTrue);

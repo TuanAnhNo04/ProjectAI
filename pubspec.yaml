@@ -12,6 +12,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # SDK package (đi kèm Flutter, KHÔNG tải từ pub.dev) — cần cho `vi` vì
+  # Material widgets của Flutter có bản dịch sẵn cho nhiều ngôn ngữ.
+  flutter_localizations:
+    sdk: flutter
 
   # --- Đang được dùng bởi code hiện tại ---
   cupertino_icons: ^1.0.8
@@ -23,7 +27,9 @@ dependencies:
   flutter_riverpod: ^2.4.9         # state management   (Day 9)
   flutter_secure_storage: ^9.2.2   # lưu token          (Day 11)
   shared_preferences: ^2.2.3       # cache offline      (Day 12)
-  intl: ^0.19.0                    # i18n vi/en         (Day 13)
+  # `flutter_localizations` (SDK) ghim intl 0.18.1 -> constraint phải khớp,
+  # nếu không `pub get` không giải được (đã gặp đúng lỗi này).
+  intl: 0.18.1                  # i18n vi/en         (Day 13)
 
 dev_dependencies:
   flutter_test:
@@ -35,6 +41,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  # Bật sinh code dịch chuỗi: `flutter gen-l10n` (Day 13).
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -116,4 +116,5 @@ const String loginLegacyBody = '{"message": "Login successful"}';
 const String registerBody = '{"success": true, "message": "User registered"}';
 
 /// `POST /login` sai mật khẩu — lỗi do server, không phải parse lỗi.
-const String loginWrongPasswordBody = '{"message": "Sai tai khoan hoac mat khau"}';
+const String loginWrongPasswordBody =
+    '{"message": "Sai tai khoan hoac mat khau"}';

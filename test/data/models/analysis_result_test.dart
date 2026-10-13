@@ -12,8 +12,7 @@ import 'package:image_processing_app/data/models/medicine.dart';
 import 'fixtures/server_samples.dart';
 
 final Matcher throwsParsing = throwsA(
-  isA<AppException>()
-      .having((e) => e.kind, 'kind', AppExceptionKind.parsing),
+  isA<AppException>().having((e) => e.kind, 'kind', AppExceptionKind.parsing),
 );
 
 void main() {
@@ -102,7 +101,7 @@ void main() {
     );
 
     test('giữ nguyên dấu : bên trong dữ liệu (bug của code cũ)', () {
-      final lines = AnalysisResult(medicines: const [tricky]).toDisplayLines();
+      final lines = const AnalysisResult(medicines: [tricky]).toDisplayLines();
 
       expect(
         lines.first,
@@ -114,7 +113,7 @@ void main() {
     });
 
     test('bỏ dòng khi field null, không in "null"', () {
-      final lines = AnalysisResult(medicines: const [tricky]).toDisplayLines();
+      final lines = const AnalysisResult(medicines: [tricky]).toDisplayLines();
 
       expect(lines.any((l) => l.startsWith('Tác dụng phụ')), isFalse);
       expect(lines.join('\n'), isNot(contains('null')));
@@ -122,24 +121,25 @@ void main() {
 
     test('thuốc không có field nào -> chỉ còn dòng tên', () {
       expect(
-        AnalysisResult(medicines: const [Medicine(name: 'A')]).toDisplayLines(),
+        const AnalysisResult(medicines: [Medicine(name: 'A')]).toDisplayLines(),
         <String>['Tên: A'],
       );
     });
 
     test('kết quả rỗng -> không dòng nào', () {
-      expect(AnalysisResult.empty().toDisplayLines(), isEmpty);
+      expect(const AnalysisResult.empty().toDisplayLines(), isEmpty);
     });
 
     test('nhiều thuốc -> dòng nối tiếp đúng thứ tự', () {
-      final lines = AnalysisResult(
-        medicines: const [
+      final lines = const AnalysisResult(
+        medicines: [
           Medicine(name: 'A', uses: 'u1'),
           Medicine(name: 'B', uses: 'u2'),
         ],
       ).toDisplayLines();
 
-      expect(lines, <String>['Tên: A', 'Công dụng: u1', 'Tên: B', 'Công dụng: u2']);
+      expect(lines,
+          <String>['Tên: A', 'Công dụng: u1', 'Tên: B', 'Công dụng: u2']);
     });
   });
 
@@ -154,7 +154,7 @@ void main() {
     });
 
     test('copyWith null xoá được text', () {
-      final res = AnalysisResult(text: 'abc');
+      const res = AnalysisResult(text: 'abc');
 
       expect(res.copyWith(text: null).text, isNull);
       expect(res.copyWith().text, 'abc');

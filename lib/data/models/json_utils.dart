@@ -36,7 +36,8 @@ Map<String, dynamic> asJsonMap(Object? value, String field) {
 List<Object?> asJsonList(Object? value, String field) {
   if (value == null) return const <Object?>[];
   if (value is List) return value;
-  throw parsingError('$field phải là danh sách, nhận được ${value.runtimeType}');
+  throw parsingError(
+      '$field phải là danh sách, nhận được ${value.runtimeType}');
 }
 
 /// String đã trim; `null`/số/bool đều quy về chuỗi, không bao giờ ném.

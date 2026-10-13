@@ -76,8 +76,8 @@ class Medicine {
             pickChanged(excellentReviewPercent, this.excellentReviewPercent)),
         averageReviewPercent: _toPercent(
             pickChanged(averageReviewPercent, this.averageReviewPercent)),
-        poorReviewPercent: _toPercent(
-            pickChanged(poorReviewPercent, this.poorReviewPercent)),
+        poorReviewPercent:
+            _toPercent(pickChanged(poorReviewPercent, this.poorReviewPercent)),
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{

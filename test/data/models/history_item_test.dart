@@ -14,8 +14,7 @@ List<Map<String, dynamic>> _rawHistory() =>
         .cast<Map<String, dynamic>>();
 
 final Matcher throwsParsing = throwsA(
-  isA<AppException>()
-      .having((e) => e.kind, 'kind', AppExceptionKind.parsing),
+  isA<AppException>().having((e) => e.kind, 'kind', AppExceptionKind.parsing),
 );
 
 void main() {

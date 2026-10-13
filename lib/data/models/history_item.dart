@@ -62,7 +62,8 @@ class HistoryItem {
 
   /// Bỏ bản ghi không xoá được (thiếu `id`) khỏi danh sách — tránh hiện nút xoá
   /// chết trong UI.
-  static List<HistoryItem> listFromJson(Object? raw, String field) => asJsonList(
+  static List<HistoryItem> listFromJson(Object? raw, String field) =>
+      asJsonList(
         raw,
         field,
       )
@@ -91,7 +92,8 @@ class HistoryItem {
 class HistoryResponse {
   const HistoryResponse({required this.items});
 
-  factory HistoryResponse.fromJson(Map<String, dynamic> json) => HistoryResponse(
+  factory HistoryResponse.fromJson(Map<String, dynamic> json) =>
+      HistoryResponse(
         items: HistoryItem.listFromJson(json[keyHistory], keyHistory),
       );
 
