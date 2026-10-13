@@ -1,89 +1,38 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:image_processing_app/core/config/app_config.dart';
+import 'package:image_processing_app/core/network/api_exception.dart';
+import 'package:image_processing_app/core/providers.dart';
+import 'package:image_processing_app/data/models/history_item.dart';
+import 'package:image_processing_app/data/models/medicine.dart';
+import 'package:image_processing_app/l10n/generated/app_localizations.dart';
+import 'package:image_processing_app/widgets/medical_disclaimer.dart';
+import 'package:image_processing_app/widgets/offline_banner.dart';
 
-class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({Key? key}) : super(key: key);
+class HistoryScreen extends ConsumerStatefulWidget {
+  const HistoryScreen({super.key});
 
   @override
-  _HistoryScreenState createState() => _HistoryScreenState();
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
-  List<dynamic>? _historyData;
-  bool _isLoading = true;
-
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchHistory();
-  }
-
-  Future<void> _fetchHistory() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final response =
-          await http.get(Uri.parse('${AppConfig.baseUrl}/history'));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _historyData = data['history'] ?? [];
-        });
-      } else {
-        _showSnackBar('Error: ${response.statusCode}', Colors.red);
-      }
-    } catch (e) {
-      _showSnackBar('Connection Error: $e', Colors.red);
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Future<void> _deleteHistoryItem(dynamic item) async {
-    final int? id = item['id'];
-    if (id == null) {
-      _showSnackBar('Invalid ID', Colors.red);
-      return;
-    }
-
-    try {
-      final response =
-          await http.delete(Uri.parse('${AppConfig.baseUrl}/history/$id'));
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _historyData!.removeWhere((historyItem) => historyItem['id'] == id);
-        });
-        _showSnackBar('Deleted successfully', Colors.green);
-      } else {
-        _showSnackBar('Error: ${response.statusCode}', Colors.red);
-      }
-    } catch (e) {
-      _showSnackBar('Connection Error: $e', Colors.red);
-    }
+    // Tải ngay khi mở màn; lỗi hiển thị ngay trong body.
+    Future.microtask(() => ref.read(historyControllerProvider.notifier).load());
   }
 
   @override
   Widget build(BuildContext context) {
+    final history = ref.watch(historyControllerProvider);
+    final snapshot = history.valueOrNull;
+    final items = snapshot?.items ?? const <HistoryItem>[];
+    final isStale = snapshot?.isStale ?? false;
+    final cachedAt = snapshot?.cachedAt;
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
@@ -97,9 +46,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
           ),
-          title: const Text(
-            'Processing History',
-            style: TextStyle(
+          title: Text(
+            l10n.historyTitle,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -116,116 +65,215 @@ class _HistoryScreenState extends State<HistoryScreen> {
           elevation: 5,
         ),
       ),
-      body: _isLoading
+      body: history.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _historyData == null || _historyData!.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No processing history',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+          : history.hasError
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          history.error is AppException
+                              ? (history.error! as AppException).message
+                              : l10n.historyLoadFailed,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () => ref
+                              .read(historyControllerProvider.notifier)
+                              .load(),
+                          child: Text(l10n.retry),
+                        ),
+                      ],
+                    ),
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: _historyData!.length,
-                  itemBuilder: (context, index) {
-                    final item = _historyData![index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      elevation: 3,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'File: ${item['filepath']}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteHistoryItem(item),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Search Results:',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            // Display the search_results in a readable format
-                            ...(item['search_results'] ?? [])
-                                .map<Widget>((searchResult) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Medicine Name: ${searchResult['Medicine_Name']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Composition: ${searchResult['Composition']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Uses: ${searchResult['Uses']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Side Effects: ${searchResult['Side_effects']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Manufacturer: ${searchResult['Manufacturer']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Excellent Review %: ${searchResult['Excellent Review %']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Average Review %: ${searchResult['Average Review %']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  Text(
-                                    'Poor Review %: ${searchResult['Poor Review %']}',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  const Divider(),
-                                ],
-                              );
-                            }).toList(),
-                          ],
+              : items.isEmpty
+                  ? Center(
+                      child: Text(
+                        l10n.historyEmpty,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () =>
+                          ref.read(historyControllerProvider.notifier).load(),
+                      child: ListView(
+                        padding: const EdgeInsets.all(16.0),
+                        children: [
+                          // Banner ngoại tuyến: dữ liệu là bản cache (Day 12).
+                          if (isStale)
+                            OfflineBanner(
+                              cachedAt: cachedAt,
+                              onRetry: () => ref
+                                  .read(historyControllerProvider.notifier)
+                                  .load(),
+                            ),
+                          for (final item in items) _HistoryCard(item: item),
+                          // Bắt buộc: màn lịch sử cũng là màn ra kết quả.
+                          const SizedBox(height: 12),
+                          const MedicalDisclaimer(),
+                        ],
+                      ),
+                    ),
     );
   }
+}
+
+/// Một bản ghi lịch sử — dựng từ model [HistoryItem] đã kiểu hoá, không phải
+/// `Map` đọc tay như trước.
+class _HistoryCard extends ConsumerWidget {
+  const _HistoryCard({required this.item});
+
+  final HistoryItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${l10n.historyFile} ${item.filepath}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.searchResultsLabel,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            if (item.searchResults.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text(
+                  l10n.noResults,
+                  style: const TextStyle(color: Colors.black54),
+                ),
+              )
+            else
+              ...item.searchResults
+                  .map((medicine) => _medicineBlock(medicine, l10n)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Xoá là thao tác không hoàn tác được (mất luôn lịch sử quét ảnh) nên hỏi
+  /// lại trước, thay vì xoá ngay khi bấm nút đỏ.
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final id = item.id;
+    if (id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deleteRecordTitle),
+        content: Text(l10n.deleteRecordBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref.read(historyControllerProvider.notifier).delete(id);
+    if (!context.mounted) return;
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ok ? l10n.deleted : l10n.deleteFailed),
+        backgroundColor: ok ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Widget _medicineBlock(Medicine medicine, AppLocalizations l10n) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            '${l10n.medicineName}: ${medicine.name}',
+            style: const TextStyle(color: Colors.black54),
+          ),
+          if (medicine.composition != null)
+            Text(
+              '${l10n.composition}: ${medicine.composition}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          if (medicine.uses != null)
+            Text(
+              '${l10n.uses}: ${medicine.uses}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          if (medicine.sideEffects != null)
+            Text(
+              '${l10n.sideEffects}: ${medicine.sideEffects}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          if (medicine.manufacturer != null)
+            Text(
+              '${l10n.manufacturer}: ${medicine.manufacturer}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          if (medicine.excellentReviewPercent != null)
+            Text(
+              '${l10n.reviewExcellent}: ${medicine.excellentReviewPercent}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          if (medicine.averageReviewPercent != null)
+            Text(
+              '${l10n.reviewAverage}: ${medicine.averageReviewPercent}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          if (medicine.poorReviewPercent != null)
+            Text(
+              '${l10n.reviewPoor}: ${medicine.poorReviewPercent}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          const Divider(),
+        ],
+      );
 }
