@@ -1,0 +1,11 @@
+Medicine_Name,Composition,Uses,Side_effects,Manufacturer,Excellent Review %,Average Review %,Poor Review %
+Panadol 500mg,Paracetamol 500mg,"Pain relief, fever reduction","Nausea, allergic reactions",GSK,93,5,2
+Efferalgan,Paracetamol 1g,,,UPSA,88,,
+Hapacol 500,"Paracetamol 500mg, Vitamin C",Fever and pain relief,Stomach irritation,Domesco,90,7,3
+Para 500,Paracetamol 500mg,Giảm đau hạ sốt,Buồn nôn,Generic,85,10,5
+Decolgen,"Paracetamol, Phenylephrine, Chlorpheniramine",Điều trị cảm cúm,Buồn ngủ,OPC,80,12,8
+Amoxicillin 500mg,Amoxicillin trihydrate,Điều trị nhiễm khuẩn,"Tiêu chảy, phát ban",DHG Pharma,75,15,10
+Strepsils,"Amylmetacresol, Dichlorobenzyl alcohol",Đau họng,,Reckitt,82,13,5
+Paracetamol Stada 500mg,Paracetamol 500mg,Giảm đau hạ sốt,Ít gặp,Stada,87,9,4
+Thuốc ho Bảo Thanh,"Thymol, Eucalyptol, Menthol",Điều trị ho và viêm họng,Khô miệng,Bảo Thanh,84,11,5
+Dầu gió xanh,"Menthol, Methyl salicylate, Eucalyptus oil",Đau đầu và đau cơ,Đau rát da khi bôi nhiều,OPC,86,10,4

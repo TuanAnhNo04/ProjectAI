@@ -1,0 +1,7 @@
+# Phụ thuộc của mock server dev (Day 8). Cài:
+#   python -m pip install -r tools/mock_server/requirements.txt
+#
+# Máy dev hiện tại ĐÃ có sẵn cả hai (Flask 2.3.3 + flask-cors) nên thường
+# không cần cài lại gì.
+Flask>=2.3
+flask-cors>=4.0

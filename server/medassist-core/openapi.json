@@ -1,0 +1,1393 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MedAssist Core",
+    "description": "\nBackend cho ứng dụng MedAssist.\n\n**Mọi lỗi trả về cùng một hình dạng**: `{\"code\", \"message\", \"detail\"}`.\n\n⚠️ Thông tin thuốc chỉ mang tính tham khảo, không thay thế chẩn đoán hoặc đơn\nthuốc của bác sĩ.\n",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Kiểm tra server",
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Đăng ký tài khoản mới",
+        "operationId": "register_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Đăng nhập",
+        "operationId": "login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Đổi refresh token",
+        "description": "Đổi refresh token lấy access token mới.\n\nRefresh token **đã dùng sẽ bị thu hồi ngay** (rotation). Nếu token đã bị\nthu hồi lại được dùng lần hai => đó là dấu hiệu **bị đánh cắp**, và ta\n**thu hồi toàn bộ chuỗi token** của lần đăng nhập đó (quyết định N1).",
+        "operationId": "refresh_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Đăng xuất (thu hồi phiên)",
+        "description": "Thu hồi 1 refresh token.\n\nTrả 204 kể cả khi token không tồn tại — client không cần phân biệt.",
+        "operationId": "logout_v1_auth_logout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/validate-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Kiểm tra độ mạnh mật khẩu (không cần token)",
+        "description": "Kiểm tra độ mạnh mật khẩu phía server (Day 16 dùng khi siết luật).\n\nEndpoint công khai: không đụng kho dữ liệu, không ghi log.",
+        "operationId": "validate_password_v1_auth_validate_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Validate Password V1 Auth Validate Password Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Tìm thuốc theo tên",
+        "description": "Tìm theo tên thuốc; **không** bất buộc đăng nhập.\n\nTên được chuẩn hoá (bỏ dấu, hạ chữ thường) nên gõ \"Panadol\", \"panadol\" hay\nkhông dấu đều ra kết quả như nhau.",
+        "operationId": "search_v1_search_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Name"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analyze": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Nhận diện thuốc từ ảnh (placeholder Day 15)",
+        "description": "Placeholder — Day 15 chưa gắt mô hình nhận diện thật.\n\n⚠️ Endpoint này **không** nhận/gửi ảnh đi nơi khác. Day 26 sẽ gắp\nnhận diện on-device phía app; nếu sau này gọi LLM/OCR bên ngoài thì phải\ncó **sự đồng ý của người dùng + khử định danh + `docs/PRIVACY.md`** theo\n`AGENTS.md` mục 2.",
+        "operationId": "analyze_v1_analyze_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/history": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Lịch sử của người đang đăng nhập",
+        "description": "Chỉ trả lịch sử **của chính người gọi**.\n\n`user_id` đến từ token; người dùng không có cách nào xem lịch sử người khác.",
+        "operationId": "list_history_v1_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Ghi một bản ghi lịch sử (dùng khi app phân tích ảnh)",
+        "description": "Ghi bản ghi cho người đang đăng nhập và trả về lịch sử mới nhất.\n\n`filepath` là đường dẫn **trên server**; app không gửi ảnh lên ở Day 15.",
+        "operationId": "create_history_v1_history_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/history/{item_id}": {
+      "delete": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Xoá một bản ghi lịch sử của người đang đăng nhập",
+        "description": "Xoá bản ghi **thuộc về mình**.\n\nNếu `item_id` tồn tại nhưng thuộc người khác thì cũng trả 404 — đúng như\n\"không tồn tại\", để không lộ sự tồn tại của dữ liệu người khác.",
+        "operationId": "delete_history_v1_history__item_id__delete",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Item Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/ask": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Hỏi đáp về thuốc (chỉ dùng nguồn nội bộ, có trích dẫn)",
+        "description": "Trả lời câu hỏi về thuốc.\n\n⚠️ Nguồn dữ liệu là danh mục thuốc **đã nạp trong kho**. Provider LLM mặc định\nlà **mock, offline** (`app/llm.py`) — không có lệnh gửi dữ liệu ra ngoài.\n\nCâu hỏi liên quan chẩn đoán/liều dùng/tương tác thuốc sẽ bị từ chối\n(`refusal_reason=\"out_of_scope\"`); câu hỏi không có nguồn sẽ bị từ chối\n(`\"no_evidence\"`). App phải hiển thị `disclaimer` và tôn trọng `answered=False`.",
+        "operationId": "ask_v1_agent_ask_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentAskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentAnswerResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/chat": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Hội thoại với agent (SSE: token + tool + citation)",
+        "description": "Mở luồng trả lời cho một lượt chat.\n\n⚠️ Phân quyền: `user_id` lấy từ **token**; `session_id` từ body nhưng **không**\nđược tin là của người gọi — `SessionStore` lọc theo cặp `(user_id, session_id)`.\n\n⚠️ Không log nội dung tin nhắn/ngữ cảnh (`AGENTS.md` mục 3, D4).",
+        "operationId": "chat_stream_v1_agent_chat_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/session/{session_id}": {
+      "delete": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Xoá lịch sử hội thoại của người đang đăng nhập",
+        "description": "Xoá phiên **thuộc về mình**.\n\n⚠️ `session_id` tồn tại nhưng thuộc người khác thì cũng trả 404 — đúng như\n\"không tồn tại\", để không lộ sự tồn tại của dữ liệu người khác.\n\nĐây là endpoint **bắt buộc** cho quyền được quên của người dùng (quyết định `D5`).",
+        "operationId": "delete_session_v1_agent_session__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentAnswerResponse": {
+        "properties": {
+          "answered": {
+            "type": "boolean",
+            "title": "Answered"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "refusal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refusal Reason",
+            "description": "Mã từ chối: no_evidence | not_authoritative | out_of_scope"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationResponse"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của dược sĩ hoặc bác sĩ."
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "answered",
+          "provider"
+        ],
+        "title": "AgentAnswerResponse",
+        "description": "Câu trả lời của agent (Day 21).\n\n⚠️ `answered=False` -> `text` là `None` và app **không** được hiện câu trả lời."
+      },
+      "AgentAskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AgentAskRequest",
+        "description": "Câu hỏi của người dùng gửi tới `/v1/agent/ask`.\n\n⚠️ `max_length=500` để một câu hỏi khổng lồ không làm phình prompt."
+      },
+      "AgentChatRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "session_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Session Id"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "session_id"
+        ],
+        "title": "AgentChatRequest",
+        "description": "Một lượt chat (Day 22), trả về dạng **SSE**.\n\n⚠️ `session_id` do client sinh. Server **không tin** nó là của người gọi —\nmọi lượt đọc/ghi đều lọc theo `user_id` lấy từ token (xem `app/sessions.py`)."
+      },
+      "AnalyzeResponse": {
+        "properties": {
+          "medicines": {
+            "items": {
+              "$ref": "#/components/schemas/MedicineResponse"
+            },
+            "type": "array",
+            "title": "Medicines"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "analyzed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyzed At"
+          }
+        },
+        "type": "object",
+        "title": "AnalyzeResponse",
+        "description": "Kết quả nhận diện thuốc từ ảnh.\n\nKhớp với `AnalysisResult` phía Dart: server Flask trả `medicine_info`, đây là\ntên chuẩn hoá cho API mới."
+      },
+      "AuthResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "token": {
+            "$ref": "#/components/schemas/TokenResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "token"
+        ],
+        "title": "AuthResponse",
+        "description": "Phản hồi chung cho `/auth/register` và `/auth/login`."
+      },
+      "CitationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "medicine_name": {
+            "type": "string",
+            "title": "Medicine Name"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "Tên trường nguồn: uses, side_effects, ..."
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "is_authoritative": {
+            "type": "boolean",
+            "title": "Is Authoritative",
+            "default": false
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "medicine_name",
+          "field",
+          "excerpt"
+        ],
+        "title": "CitationResponse",
+        "description": "Một trích dẫn trả về cho app.\n\n⚠️ `is_authoritative=False` -> app **phải** hiện cảnh báo \"dữ liệu tham khảo,\nkhông thay thế tư vấn của dược sĩ/bác sĩ\"."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version",
+          "time"
+        ],
+        "title": "HealthResponse"
+      },
+      "HistoryCreateRequest": {
+        "properties": {
+          "filepath": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Filepath"
+          },
+          "medicines": {
+            "items": {
+              "$ref": "#/components/schemas/MedicineResponse"
+            },
+            "type": "array",
+            "title": "Medicines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filepath"
+        ],
+        "title": "HistoryCreateRequest",
+        "description": "Body khi app ghi một bản ghi lịch sử.\n\nDùng **body** chứ không phải query string vì `medicines` là mảng object —\nđưa lên query sẽ không tự mã hoá được (và dễ bị giới hạn độ dài URL)."
+      },
+      "HistoryItemResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "filepath": {
+            "type": "string",
+            "title": "Filepath"
+          },
+          "search_results": {
+            "items": {
+              "$ref": "#/components/schemas/MedicineResponse"
+            },
+            "type": "array",
+            "title": "Search Results"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filepath"
+        ],
+        "title": "HistoryItemResponse"
+      },
+      "HistoryResponse": {
+        "properties": {
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryItemResponse"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "HistoryResponse"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "MedicineResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "composition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composition"
+          },
+          "uses": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uses"
+          },
+          "side_effects": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side Effects"
+          },
+          "manufacturer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manufacturer"
+          },
+          "excellent_review_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excellent Review Percent"
+          },
+          "average_review_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Review Percent"
+          },
+          "poor_review_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poor Review Percent"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "is_authoritative": {
+            "type": "boolean",
+            "title": "Is Authoritative",
+            "default": false
+          },
+          "ingredients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ingredients"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "MedicineResponse"
+      },
+      "RefreshRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshRequest"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 6,
+            "title": "Password"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "email"
+        ],
+        "title": "RegisterRequest"
+      },
+      "SearchResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MedicineResponse"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "SearchResponse"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Số giây hết hạn access token"
+          },
+          "refresh_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token",
+            "description": "Dùng để gọi /v1/auth/refresh. Chỉ lưu hash ở server."
+          },
+          "refresh_expires_in": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in"
+        ],
+        "title": "TokenResponse"
+      },
+      "UserResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username"
+        ],
+        "title": "UserResponse",
+        "description": "**Không** bao giờ chứa `password` hay `password_hash`."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

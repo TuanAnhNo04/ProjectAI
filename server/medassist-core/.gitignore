@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Kho SQLite dev (Day 15 dùng in-memory; để sẵn cho lần chạy thật)
+*.db
+*.sqlite3
+
+# ⚠️ `openapi.json` CÓ commit (hợp đồng API cho client review) — không ignore.

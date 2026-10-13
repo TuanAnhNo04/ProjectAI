@@ -1,0 +1,17 @@
+# Phụ thuộc của `medassist-core`.
+#
+# ⚠️ **Nguyên tắc:** chỉ thêm gói khi chủ dự án **duyệt tng gói một** (xem
+# `docs/DECISIONS.md` D2). Không tự ý `pip install` gì.
+fastapi>=0.110          # có sẵn
+uvicorn>=0.29           # có sẵn — chạy `uvicorn app.main:app --reload`
+pydantic>=2.0           # kéo bởi fastapi
+bcrypt>=4.0             # có sẵn — băm mật khẩu (AGENTS.md yêu cầu bcrypt/argon2)
+httpx>=0.27             # có sẵn — TestClient của FastAPI
+pytest>=8.0             # có sẵn — chạy test
+
+# ✅ ĐÃ ĐƯỢC DUYỆT (05/10/2026) — đóng nợ N4: JWT tự viết tay -> thư viện chuẩn.
+# ⚠️ Ghi rõ **vì sao cần**, để lần sau không ai xoá nhầm coi là thừa:
+#   `PyJWT` được kiểm thử với các vector tấn công JWT đã biết (alg: none, alg
+#   confusion, chữ ký cắt ngắn). Bản tự viết tay phải tự nhớ làm hết những thứ
+#   đó — bỏ sót một chỗ là lỗ hổng.
+PyJWT>=2.8              # ký/kiểm tra JWT HS256 — XEM app/jwt_tokens.py

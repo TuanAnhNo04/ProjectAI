@@ -1,0 +1,62 @@
+# ⚠️⚠️ CHƯA ĐƯỢC KIỂM CHỨNG — đọc trước khi dùng ⚠️⚠️
+#
+# File này được viết theo kế hoạch nhưng **CHƯA BAO GIỜ CHẠY** trên máy này,
+# vì máy dev **không cài Docker** (`docker --version` -> không tìm thấy lệnh).
+# Toàn bộ Day 15 được kiểm chứng bằng SQLite in-memory + pytest, KHÔNG dùng
+# compose này.
+#
+# Trước khi chạy, hãy cài Docker Desktop và kiểm tra lại:
+#   1. `docker compose up` khởi động Postgres (pgvector) + Redis + API;
+#   2. API cần biến môi trường `DATABASE_URL` (xem `.env.example`);
+#   3. `medassist-core` hiện dùng **SQLite**, nên để dùng Postgres phải viết
+#      thêm `PostgresRepository` (interface `Repository` trong app/repository.py
+#      đã sẵn sàng cho việc này).
+#
+# Không mở cổng Postgres/Redis ra ngoài localhost: đây là môi trường dev.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: medassist
+      POSTGRES_USER: medassist
+      POSTGRES_PASSWORD: medassist_dev_only
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medassist"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # Rate limit login (Day 16) — KHÔNG bật persistence.
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://medassist:medassist_dev_only@postgres:5432/medassist
+      REDIS_URL: redis://redis:6379/0
+      # ⚠️ Chỉ dùng cho dev. Bản phát hành phải đặt khoá thật qua biến môi
+      # trường, KHÔNG hardcode (xem AGENTS.md mục 3). Tối thiểu 32 byte —
+      # ngắn hơn thì server TỪ CHỐI khởi động (quyết định N2).
+      MEDASSIST_SECRET_KEY: doi-thanh-mot-khoa-ngau-nhien-toi-thieu-32-byte
+    ports:
+      # Bind localhost: KHÔNG dùng `0.0.0.0` để tránh lộ API ra LAN.
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  pgdata:
