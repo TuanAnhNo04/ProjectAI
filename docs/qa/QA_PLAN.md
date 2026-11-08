@@ -6,7 +6,7 @@
 - **KHÔNG sửa mã nguồn app**: không ghi vào `lib/`, `test/`, `android/`, `server/medassist-core/app/`, `server/medassist-core/tests/`, `pubspec.yaml`, `assets/`. Chỉ được ghi vào `docs/qa/` (file findings của mình) và thư mục scratchpad (script thử tạm, DB tạm).
 - Bỏ qua bản lồng `ProjectAI-main/ProjectAI-main/`. KHÔNG mở `anh_thuoc/`, `server/medassist-core/data/real/`, `.env*`, khoá, `uploads/`.
 - Không gọi mạng ngoài `localhost`/`127.0.0.1`/`10.0.2.2`. Không `git`. Không cài gói. Dữ liệu thử chỉ là dữ liệu GIẢ.
-- Python: `& "C:\Users\Tuan Anh\AppData\Local\Temp\..."` KHÔNG; dùng `C:\Users\Tuan Anh\AppData\Local\Programs\Python\Python312\python.exe`. Flutter: `$env:Path = "D:\flutter_windows_3.19.4-stable\flutter\bin;$env:Path"`. adb: `D:\Android\Sdk\platform-tools`.
+- Python: `& "C:\Users\TEN_BAN\AppData\Local\Temp\..."` KHÔNG; dùng `C:\Users\TEN_BAN\AppData\Local\Programs\Python\Python312\python.exe`. Flutter: `$env:Path = "D:\flutter_windows_3.19.4-stable\flutter\bin;$env:Path"`. adb: `D:\Android\Sdk\platform-tools`.
 - Chỉ chạy bộ test hiện có MỘT lần (không lặp). Không chạy lại toàn bộ chỉ vì thấy một lỗi.
 - Hiệu quả token: đọc mỗi file một lần, trích dẫn `file:dòng`, không dán log dài (≤10 dòng/bằng chứng).
 

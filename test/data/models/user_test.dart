@@ -69,7 +69,7 @@ void main() {
 
   group('validate email (Day 11)', () {
     test('email hợp lệ', () {
-      for (final e in ['a@b.co', 'tuan.anh+thuoc@gmail.com', 'x_y@z.io']) {
+      for (final e in ['a@b.co', 'sinhvien.demo@example.com', 'x_y@z.io']) {
         expect(User(username: 'a', email: e).hasValidEmail, isTrue, reason: e);
       }
     });

@@ -14,7 +14,7 @@
 | Git | 2.55.0 | ✅ |
 | Python | 3.12.5 | ✅ sẵn sàng cho backend (Day 11) |
 | Node | v24.14.1 | ✅ (không dùng tới) |
-| Android SDK | `C:\Users\Tuan Anh\AppData\Local\Android\Sdk` — có `platform-tools`(adb), `build-tools`, `emulator`, platform 33/34/35, NDK 24/26/27, system-images | ✅ |
+| Android SDK | `C:\Users\TEN_BAN\AppData\Local\Android\Sdk` — có `platform-tools`(adb), `build-tools`, `emulator`, platform 33/34/35, NDK 24/26/27, system-images | ✅ |
 | **JDK (Java)** | `java` không trong PATH, `JAVA_HOME` unset, không có `Android Studio\jbr`, không có `Eclipse Adoptium` | ❌ **PHẢI CÀI** |
 | **Android `cmdline-tools`** | không tồn tại → không có `sdkmanager`, `avdmanager` | ❌ **PHẢI CÀI** (accept license + tạo AVD) |
 | AVD | `~\.android\avd` không tồn tại → `flutter emulators` trả *No emulators available* | ❌ chưa có device |

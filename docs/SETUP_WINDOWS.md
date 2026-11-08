@@ -54,7 +54,7 @@ Test-Path "$sdk\cmdline-tools\latest\bin\sdkmanager.bat"             # phải l�
 | Thứ | Trạng thái trên máy | Ghi chú |
 |---|---|---|
 | Flutter SDK | `D:\flutter_windows_3.19.4-stable\flutter` (3.19.4 / Dart 3.3.2) | dùng tới Day 25 |
-| Android SDK + `platform-tools`(adb) + `build-tools` + `emulator` | `C:\Users\Tuan Anh\AppData\Local\Android\Sdk` | đầy đủ |
+| Android SDK + `platform-tools`(adb) + `build-tools` + `emulator` | `C:\Users\TEN_BAN\AppData\Local\Android\Sdk` | đầy đủ |
 | **System image cho AVD** | `android-35\google_apis\x86_64` ✅ · `android-33\google_apis\x86_64` ✅ | **khỏi tải**; `android-34\google_apis` **rỗng** → đừng chọn |
 | NDK | 24.0 / 26.3 / 27.0 (build đang pin `26.3.11579264`) | app chưa có plugin native |
 | Python / Git / Node | 3.12.5 / 2.55 / v24 | Python dùng cho backend FastAPI (Day 11) |

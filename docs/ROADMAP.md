@@ -52,7 +52,7 @@
 
 ### Day 0 — Khởi động & chốt "trạng thái số 0" (1 giờ) ✋ ✅ **21/09/2026**
 - [x] ✋ `flutter --version` · `flutter doctor`
-      - Ghi nhận: Flutter **3.19.4** stable / Dart **3.3.2** · git **2.55.0.windows.3** · identity `Tuan Anh <davidpham01104@gmail.com>` · Windows 10.0.26200 · locale en-US
+      - Ghi nhận: Flutter **3.19.4** stable / Dart **3.3.2** · git **2.55.0.windows.3** · identity `Tuan Anh <nguoidung.demo@example.com>` · Windows 10.0.26200 · locale en-US
       - ⚠️ `flutter doctor`: **Android toolchain ✗ (thiếu `cmdline-tools`)** · Android Studio chưa cài · Visual Studio chưa cài · 3 device khả dụng nhưng **không có emulator/máy Android**
 - [x] ✋ `git init -b main`; `.gitignore` của project đã có sẵn (không cần thêm)
 - [x] ✋ Commit baseline → `8a74b8f` *chore: baseline before refactor (Flutter app + audit findings)*
@@ -875,7 +875,7 @@ Get-ChildItem -Recurse -File lib | ForEach-Object { "$($_.Length) $($_.FullName)
 
 ### 21/09/2026 — Day 0 ✅ + Day 1 ✅
 
-**Môi trường ghi nhận:** Flutter **3.19.4** stable / Dart **3.3.2** · git **2.55.0.windows.3** · identity `Tuan Anh <davidpham01104@gmail.com>` · Windows 10.0.26200 · locale en-US.
+**Môi trường ghi nhận:** Flutter **3.19.4** stable / Dart **3.3.2** · git **2.55.0.windows.3** · identity `Tuan Anh <nguoidung.demo@example.com>` · Windows 10.0.26200 · locale en-US.
 
 **Day 0 — baseline & version control**
 - `git init -b main` → 2 commit: `8a74b8f` *chore: baseline before refactor* và `4f30d26` *docs: add day-by-day roadmap (P0-P3)*; working tree sạch.
@@ -952,7 +952,7 @@ Sau đó `flutter run -d emulator-5554` → app phải vào màn Đăng nhập (
 **✅ DoD đạt:** `Select-String '10\.0\.2\.2' lib\*.dart` → **4 hit, tất cả trong `app_config.dart`** (3 hit là comment, 1 hit là `defaultValue`). Không còn URL hardcode ở màn hình nào.
 
 **⛔ BLOCKER — chưa verify được bằng máy:**
-> Máy đang mở code này **không cài Flutter, Dart, Git**: `where flutter` / `where dart` / `where git` → *Could not find files*; không có ổ `D:` (`.dart_tool/package_config.json` vẫn trỏ `D:/flutter_windows_3.19.4-stable/flutter` và pub cache `C:/Users/Tuan Anh/...` → project được **copy từ máy cũ**, môi trường ở đây không tương thích).
+> Máy đang mở code này **không cài Flutter, Dart, Git**: `where flutter` / `where dart` / `where git` → *Could not find files*; không có ổ `D:` (`.dart_tool/package_config.json` vẫn trỏ `D:/flutter_windows_3.19.4-stable/flutter` và pub cache `C:/Users/TEN_BAN/...` → project được **copy từ máy cũ**, môi trường ở đây không tương thích).
 > ⇒ `flutter test test/core`, `dart format .`, `flutter analyze` **đều chưa chạy được**.
 
 **Việc cần làm để nghiệm thu Day 5 (mất 5 phút nếu đã có Flutter):**
