@@ -28,13 +28,16 @@ from app.agent import answer_question
 from app.deps import current_user_id, get_repository
 from app.errors import CODE_NOT_FOUND, APIError
 from app.orchestrator import chat as chat_turn
-from app.observability import get_usage_tracker
+from app.observability import audit, get_usage_tracker
 from app.schemas import (
     AgentAnswerResponse,
     AgentAskRequest,
     AgentChatRequest,
+    LifestyleRequest,
+    LifestyleResponse,
     UsageResponse,
 )
+from app.lifestyle import build_lifestyle_tips
 from app.sessions import get_session_store
 from app.sqlite_repository import SQLiteRepository
 
@@ -62,8 +65,14 @@ def ask(
     (`refusal_reason="out_of_scope"`); câu hỏi không có nguồn sẽ bị từ chối
     (`"no_evidence"`). App phải hiển thị `disclaimer` và tôn trọng `answered=False`.
     """
-    medicines = repo.list_medicines(MAX_LIMIT, 0).results
-    return answer_question(body.question, medicines, top_k=body.top_k)
+    # ⚠️ Không dùng `list_medicines(100, 0)`: chỉ thấy 100 thuốc đầu, vô dụng với danh mục thật.
+    medicines = repo.candidate_medicines(body.question)
+    # Endpoint này không có cờ đồng ý -> luôn mock (không bao giờ ra Claude, B-01).
+    from app.llm import _default_provider
+
+    return answer_question(
+        body.question, medicines, top_k=body.top_k, provider=_default_provider
+    )
 
 
 
@@ -96,6 +105,7 @@ def my_usage(user_id: int = Depends(current_user_id)) -> UsageResponse:
 #   Citation        -> citation
 #   Done            -> done
 #   Failure         -> failure
+#   (mới) Emergency -> emergency  {"matched": [...], "message": "..."}
 
 
 def _sse(event: str, data: dict[str, Any]) -> str:
@@ -148,6 +158,9 @@ def chat_stream(
                 repo=repo,
                 session=get_session_store(),
                 session_id=body.session_id,
+                current_medications=body.current_medications,
+                cloud_ai_consent=body.cloud_ai_consent,
+                health_context=body.health_context,
             )
         except Exception:
             # ⚠️ Không log chi tiết — có thể chứa dữ liệu sức khoẻ của người dùng.
@@ -167,6 +180,10 @@ def chat_stream(
                         "title": c.medicine_name,
                         "source": c.source,
                         "isAuthoritative": c.is_authoritative,
+                        "sourceUrl": c.source_url,
+                        "retrievedAt": c.retrieved_at,
+                        "license": c.license,
+                        "reviewedBy": c.reviewed_by,
                     },
                 )
             elif step.kind == "token":
@@ -175,8 +192,13 @@ def chat_stream(
             elif step.kind == "refusal":
                 # Sự kiện riêng: UI hiện cảnh báo ngay, không phải chờ đọc hết text.
                 yield _sse("refusal", {"reason": step.reason or ""})
+            elif step.kind == "emergency" and step.data:
+                # Sự kiện riêng: UI hiện banner khẩn cấp + nút gọi 115 ngay lập tức.
+                yield _sse("emergency", step.data)
+            elif step.kind == "symptom" and step.data:
+                yield _sse("symptom_noted", step.data)
             elif step.kind == "done":
-                yield _sse("done", {"sessionId": body.session_id})
+                yield _sse("done", {"sessionId": body.session_id, "mode": result.mode})
 
         # ⚠️ Đếm **độ dài ký tự**, không đếm số lượt tool/citation: đây là thứ duy
         # nhất tương đương chi phí khi đổi provider. Không ghi nội dung vào đâu.
@@ -213,3 +235,22 @@ def delete_session(
     """
     if not get_session_store().clear(user_id, session_id):
         raise APIError(status_code=404, code=CODE_NOT_FOUND, message="Không có phiên nào.")
+    audit("session_deleted", "ok")
+
+
+@router.post(
+    "/agent/lifestyle",
+    response_model=LifestyleResponse,
+    summary="Gợi ý lối sống (stateless, có trích dẫn cho mục về thuốc)",
+)
+def lifestyle(
+    body: LifestyleRequest,
+    _user_id: int = Depends(current_user_id),
+    repo: SQLiteRepository = Depends(get_repository),
+) -> LifestyleResponse:
+    """Tối đa 5 gợi ý. Mục `medication` chỉ lấy từ bản ghi thuốc (có trích dẫn); mục
+    `general` từ danh sách viết sẵn, không có khẳng định về bệnh hay liều.
+
+    ⚠️ **Stateless**: không ghi phiên, lịch sử, số liệu sử dụng hay log nội dung.
+    """
+    return build_lifestyle_tips(body, repo)

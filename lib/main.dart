@@ -1,15 +1,31 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:image_processing_app/core/config/app_config.dart';
+import 'package:image_processing_app/core/display_settings.dart';
 import 'package:image_processing_app/core/providers.dart';
 import 'package:image_processing_app/core/theme/app_theme.dart';
+import 'package:image_processing_app/data/local/health_database.dart';
+import 'package:image_processing_app/data/local/notification_service.dart';
 import 'package:image_processing_app/l10n/generated/app_localizations.dart';
-import 'screens/login_screen.dart';
+import 'screens/auth_gate.dart';
+import 'screens/consent_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   // Verify --dart-define: in ra server mà app đang trỏ tới (Day 5).
-  debugPrint('MedAssist → API: ${AppConfig.describe()}');
+  if (kDebugMode) debugPrint('MedAssist → API: ${AppConfig.describe()}');
+  // Day 27: khởi tạo notification channel (không chặn UI nếu lỗi).
+  if (await NotificationService.instance.init()) {
+    // Dựng lại lịch nhắc từ dữ liệu đã lưu (múi giờ đổi / máy khởi động lại).
+    try {
+      await NotificationService.instance
+          .rescheduleAll(await HealthDatabase.instance.getReminders());
+    } on Object {
+      // Nhắc thuốc hỏng không được làm app không mở được; không log nội dung.
+    }
+  }
   // ProviderScope là nơi duy nhất chứa toàn bộ dependency (Day 9).
   runApp(const ProviderScope(child: MedAssistApp()));
 }
@@ -32,13 +48,13 @@ class MedAssistApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final display = ref.watch(displaySettingsProvider);
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      // `system` = bám theo chế độ sáng/tối của máy, người dùng không phải
-      // bật trong app.
-      themeMode: ThemeMode.system,
+      // Mặc định `system` (bám theo máy); người dùng đổi được ở Hồ sơ > Hiển thị.
+      themeMode: display.themeMode,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       // App là tiếng Việt: bắt đầu bằng `vi`, và khi máy đặt ngôn ngữ lạ
@@ -50,14 +66,25 @@ class MedAssistApp extends ConsumerWidget {
         }
         return supported.first;
       },
-      home: const LoginScreen(),
+      // Lần đầu (hoặc khi chính sách đổi) phải đồng ý; sau đó màn gốc theo phiên đăng
+      // nhập: có phiên → AppShell, không → Login (xem AuthGate).
+      home: const ConsentGate(child: AuthGate()),
       builder: (context, child) => ProviderScope(
         overrides: [
           unauthorizedNotifierProvider.overrideWithValue(
             () => _onUnauthorized(context, ref),
           ),
         ],
-        child: child ?? const SizedBox.shrink(),
+        // Cỡ chữ trong app nhân thêm vào cỡ chữ hệ thống, không thay thế nó.
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              MediaQuery.textScalerOf(context).scale(1) *
+                  display.textSize.factor,
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }

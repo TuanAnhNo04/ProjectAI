@@ -18,6 +18,13 @@ class AppConfig {
     defaultValue: 'http://10.0.2.2:5000',
   );
 
+  /// Backend app nói chuyện: `core` (`medassist-core`, mặc định) hoặc `flask`
+  /// (server cũ/mock). Quyết định bộ đường dẫn — xem `ApiPaths`.
+  static const String backend = String.fromEnvironment(
+    'BACKEND',
+    defaultValue: 'core',
+  );
+
   /// Tiền tố đường dẫn, dùng khi backend chuyển sang `/v1/...` (Day 15+).
   /// Mặc định rỗng để khớp Flask hiện tại (`/login`, `/history`, ...).
   static const String apiPrefix = String.fromEnvironment('API_PREFIX');
@@ -88,7 +95,7 @@ class AppConfig {
 
   /// Chuỗi ngắn gọn để log khi khởi động: `dev http://10.0.2.2:5000 (http)`.
   static String describe() =>
-      '$flavor $baseUrl${apiPrefix.isEmpty ? '' : ' +$apiPrefix'} '
+      '$flavor/$backend $baseUrl${apiPrefix.isEmpty ? '' : ' +$apiPrefix'} '
       '(${usesHttps ? 'https' : 'http'} · timeout '
       '${connectTimeout.inSeconds}s/${receiveTimeout.inSeconds}s)';
 
@@ -98,6 +105,8 @@ class AppConfig {
         if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://'))
           'API_BASE_URL phải bắt đầu bằng http:// hoặc https:// (hiện: "$baseUrl")',
         if (baseUrl.endsWith('/')) 'API_BASE_URL không được kết thúc bằng "/"',
+        if (backend != 'core' && backend != 'flask')
+          'BACKEND phải là "core" hoặc "flask" (hiện: "$backend")',
         if (Uri.parse(baseUrl).host.isEmpty) 'API_BASE_URL thiếu host',
         if (apiPrefix.isNotEmpty && !apiPrefix.startsWith('/'))
           'API_PREFIX phải bắt đầu bằng "/" (hiện: "$apiPrefix")',

@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedAssist - Toàn bộ thông tin dự án</title>
+<style>
+  :root { --bg:#f2fafa; --card:#fff; --ink:#0b3b3a; --muted:#4f6f6e; --teal:#0e9f95; --teal-d:#0a6f68; --line:#cfe6e4;
+          --warn:#b45309; --ok:#15803d; --bad:#b91c1c; --code:#e7f3f2; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1f1f; --card:#12302f; --ink:#e6f6f5; --muted:#9bc0be; --teal:#2dd4bf; --teal-d:#5eead4; --line:#1f4a48;
+            --warn:#fbbf24; --ok:#4ade80; --bad:#f87171; --code:#0f2928; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif; line-height:1.55; }
+  header { padding:26px 5vw 6px; }
+  h1 { margin:0 0 4px; color:var(--teal-d); font-size:clamp(1.6rem,3.5vw,2.4rem); }
+  header p { margin:0; color:var(--muted); }
+  nav { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 5vw; display:flex; gap:8px; flex-wrap:wrap; }
+  nav button { border:1px solid var(--line); background:var(--card); color:var(--ink); padding:7px 13px; border-radius:999px; cursor:pointer; font-size:.92rem; }
+  nav button[aria-selected="true"] { background:var(--teal); color:#fff; border-color:var(--teal); font-weight:600; }
+  main { padding:14px 5vw 60px; max-width:1200px; margin:0 auto; }
+  section { display:none; } section.active { display:block; }
+  h2 { color:var(--teal-d); margin:20px 0 8px; font-size:1.35rem; }
+  h3 { margin:16px 0 6px; font-size:1.05rem; }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .card b { color:var(--teal-d); }
+  .stat { text-align:center; } .stat .n { font-size:2rem; font-weight:700; color:var(--teal); line-height:1.1; }
+  .stat span { color:var(--muted); font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; font-size:.93rem; }
+  th { background:var(--code); color:var(--muted); font-weight:600; }
+  tr:last-child td { border-bottom:0; }
+  .wrap { overflow-x:auto; margin:6px 0 12px; }
+  code { background:var(--code); padding:1px 6px; border-radius:5px; font-family:Consolas,"Courier New",monospace; font-size:.88em; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:auto; font:.83rem/1.45 Consolas,"Courier New",monospace; }
+  .tag { display:inline-block; padding:1px 9px; border-radius:999px; font-size:.78rem; font-weight:600; white-space:nowrap; }
+  .ok { background:color-mix(in srgb,var(--ok) 18%,transparent); color:var(--ok); }
+  .warn { background:color-mix(in srgb,var(--warn) 18%,transparent); color:var(--warn); }
+  .bad { background:color-mix(in srgb,var(--bad) 18%,transparent); color:var(--bad); }
+  .note { border-left:4px solid var(--warn); background:var(--card); border-radius:8px; padding:10px 14px; margin:10px 0; }
+  .good { border-left-color:var(--ok); }
+  ul,ol { padding-left:1.3em; } li { margin:3px 0; }
+  .bar { height:12px; border-radius:6px; background:var(--line); overflow:hidden; } .bar i { display:block; height:100%; background:var(--teal); }
+  @media print { nav { display:none; } section { display:block !important; page-break-inside:avoid; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>MedAssist — Toàn bộ thông tin dự án</h1>
+  <p>Mục tiêu · tính năng · màn hình · công cụ xây dựng · kiến trúc · API · dữ liệu · bảo mật · kiểm thử · tiến độ · cách chạy</p>
+</header>
+
+<nav role="tablist" id="tabs">
+  <button role="tab" data-t="tong-quan" aria-selected="true">Tổng quan</button>
+  <button role="tab" data-t="tinh-nang" aria-selected="false">Tính năng</button>
+  <button role="tab" data-t="man-hinh" aria-selected="false">Màn hình app</button>
+  <button role="tab" data-t="cong-cu" aria-selected="false">Công cụ xây dựng</button>
+  <button role="tab" data-t="kien-truc" aria-selected="false">Kiến trúc</button>
+  <button role="tab" data-t="api-du-lieu" aria-selected="false">API &amp; dữ liệu</button>
+  <button role="tab" data-t="bao-mat" aria-selected="false">Bảo mật</button>
+  <button role="tab" data-t="kiem-thu" aria-selected="false">Kiểm thử</button>
+  <button role="tab" data-t="tien-do" aria-selected="false">Tiến độ &amp; còn thiếu</button>
+  <button role="tab" data-t="chay" aria-selected="false">Chạy &amp; demo</button>
+</nav>
+
+<main>
+
+<!-- ============================ TỔNG QUAN -->
+<section id="tong-quan" class="active">
+  <h2>MedAssist là gì</h2>
+  <p>Ứng dụng di động (Flutter) tra cứu thông tin thuốc cho người Việt: tìm theo tên, nhận diện hộp thuốc bằng OCR chạy trên máy, hỏi đáp với trợ lý AI <b>luôn trích dẫn nguồn</b>, lưu hồ sơ sức khoẻ và nhắc uống thuốc. Backend FastAPI cung cấp tài khoản, dữ liệu thuốc, lịch sử và agent. Thông tin trong app chỉ mang tính tham khảo, không thay thế bác sĩ hoặc dược sĩ.</p>
+  <div class="grid">
+    <div class="card stat"><div class="n">≈ 90%</div><span>tiến độ ước lượng (Day 0–30)</span></div>
+    <div class="card stat"><div class="n">330</div><span>test Flutter đạt (26 file test)</span></div>
+    <div class="card stat"><div class="n">109/109</div><span>ca đánh giá agent (<code>eval.py</code>)</span></div>
+    <div class="card stat"><div class="n">18</div><span>endpoint backend (<code>/v1</code>)</span></div>
+    <div class="card stat"><div class="n">10</div><span>thuốc mẫu (dữ liệu giả)</span></div>
+    <div class="card stat"><div class="n">3</div><span>flavor: dev · staging · prod</span></div>
+  </div>
+  <h3>Bài toán</h3>
+  <ul>
+    <li>Người dân khó hiểu tờ hướng dẫn thuốc (công dụng, tác dụng phụ, tương tác).</li>
+    <li>Chatbot AI thông thường có thể <b>bịa</b> thông tin y khoa; MedAssist chỉ trả lời từ nguồn đã nạp, kèm trích dẫn, và từ chối khi không có căn cứ.</li>
+    <li>Dữ liệu sức khoẻ rất nhạy cảm: ảnh, thuốc đang dùng, lịch sử không được gửi đi tuỳ tiện.</li>
+  </ul>
+  <h3>Thông tin kỹ thuật chung</h3>
+  <div class="wrap"><table>
+    <tr><th>Mục</th><th>Giá trị</th></tr>
+    <tr><td>Tên gói pub / phiên bản</td><td><code>image_processing_app</code> · <code>1.0.0+1</code> (app được nâng cấp từ bản Flask nhận diện thuốc cũ)</td></tr>
+    <tr><td>Package Android</td><td><code>com.medassist.app</code> (dev: <code>.dev</code>, staging: <code>.staging</code>)</td></tr>
+    <tr><td>Android</td><td>minSdk 26 (Android 8.0), compileSdk 35, NDK 26.3.11579264</td></tr>
+    <tr><td>Backend</td><td><code>server/medassist-core</code> — Python 3.12, FastAPI, phiên bản API 0.1.0</td></tr>
+    <tr><td>Ngôn ngữ giao diện</td><td>Tiếng Việt và tiếng Anh</td></tr>
+    <tr><td>Thư mục dự án</td><td><code>D:\SCHOOL\Mobile\ProjectAI-main (update net)\ProjectAI-main</code></td></tr>
+  </table></div>
+</section>
+
+<!-- ============================ TÍNH NĂNG -->
+<section id="tinh-nang">
+  <h2>Tính năng và trạng thái</h2>
+  <p><span class="tag ok">Xong &amp; đã kiểm tra</span> <span class="tag warn">Có code, chưa thử trên máy thật</span> <span class="tag bad">Chưa làm</span></p>
+  <div class="wrap"><table>
+    <tr><th>Nhóm</th><th>Tính năng</th><th>Mô tả</th><th>Trạng thái</th></tr>
+    <tr><td rowspan="4">Tài khoản</td><td>Đăng ký / đăng nhập</td><td>Tên đăng nhập + email + mật khẩu; mật khẩu băm bcrypt; access token + refresh token (JWT)</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Giữ phiên &amp; làm mới token</td><td>Refresh token xoay vòng; dùng lại token cũ thì thu hồi cả "family"; 401 → xoá token, về màn đăng nhập</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Kiểm tra độ mạnh mật khẩu</td><td>Endpoint riêng, từ chối mật khẩu quá 72 byte</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Xoá tài khoản</td><td>Cần mật khẩu; xoá tài khoản, lịch sử, phiên, hội thoại</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td rowspan="3">Tra cứu thuốc</td><td>Tìm theo tên / hoạt chất</td><td>Chuẩn hoá tiếng Việt không dấu; phân trang; cache offline</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Nhận diện hộp thuốc (OCR)</td><td>ML Kit chạy trên máy, khớp chữ với danh mục thuốc; ảnh không rời máy; chế độ <code>remote | ondevice | hybrid</code></td><td><span class="tag ok">Đã thử trên máy ảo, kể cả chế độ máy bay</span></td></tr>
+    <tr><td>Lịch sử tra cứu</td><td>Theo tài khoản, xoá từng mục, có thời hạn lưu (retention)</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td rowspan="5">Trợ lý AI</td><td>Chat streaming (SSE)</td><td>Trả lời hiện dần, kèm sự kiện công cụ và trích dẫn; thẻ nguồn bên dưới câu trả lời</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Trích dẫn nguồn bắt buộc</td><td>Mỗi nhận định có mã <code>[R1]…</code>; không có nguồn → "không đủ bằng chứng", khuyên hỏi dược sĩ</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Bộ công cụ agent</td><td>search_drug · check_interaction · normalize_prescription · explain_for_patient · schedule_reminder</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Chặn câu hỏi nguy hiểm</td><td>Liều dùng, chẩn đoán, kê đơn, tương tác, cấp cứu bị từ chối; phát hiện prompt injection</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>LLM thật chạy trên máy (Ollama)</td><td>Tuỳ chọn <code>MEDASSIST_LLM=ollama</code>; câu LLM sinh ra vẫn phải qua kiểm chứng trích dẫn</td><td><span class="tag ok">Đã chạy thử qwen2.5:3b</span></td></tr>
+    <tr><td rowspan="3">Sức khoẻ cá nhân</td><td>Hồ sơ sức khoẻ</td><td>Dị ứng, bệnh nền, thuốc đang dùng; lưu SQLite trên máy; có màn hình đồng ý; agent nhận danh sách thuốc đang dùng</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Nhắc uống thuốc</td><td>Giờ, phút, các thứ trong tuần, liều dùng; thông báo đúng giờ; dựng lại lịch khi mở app/khởi động máy; nhật ký uống thuốc</td><td><span class="tag ok">Thông báo nổ đúng giờ trên máy ảo</span></td></tr>
+    <tr><td>Trợ lý giọng nói</td><td>Mới có cổng (port) và adapter "không khả dụng"; xem <code>docs/VOICE_ASSISTANT.md</code></td><td><span class="tag bad">Chưa làm</span></td></tr>
+    <tr><td rowspan="4">Trải nghiệm &amp; riêng tư</td><td>Disclaimer y khoa</td><td>Hiện ở mọi màn có kết quả, không có tuỳ chọn tắt</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Chế độ offline</td><td>Banner ngoại tuyến + cache dữ liệu công khai</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Màn hình đồng ý &amp; quyền riêng tư</td><td>Đồng ý ở lần mở đầu, thu hồi được, xoá dữ liệu</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Giao diện</td><td>Material 3, theme teal, sáng/tối, đa ngôn ngữ vi/en, icon + splash Android</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td rowspan="3">Hệ thống</td><td>MCP server</td><td>search_drug và check_interaction đóng gói theo chuẩn MCP (<code>MEDASSIST_USE_MCP=1</code>)</td><td><span class="tag ok">Đã chạy thật qua client MCP (stdio)</span></td></tr>
+    <tr><td>Giới hạn tần suất, audit, số liệu sử dụng</td><td>Đăng nhập/xoá tài khoản có rate limit; audit log không chứa thông tin cá nhân; usage chỉ trả cho chính người dùng</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>Báo lỗi crash</td><td>Cần chọn SDK + consent + cập nhật PRIVACY</td><td><span class="tag bad">Chưa làm</span></td></tr>
+  </table></div>
+</section>
+
+<!-- ============================ MÀN HÌNH -->
+<section id="man-hinh">
+  <h2>Các màn hình trong app (<code>lib/screens/</code>)</h2>
+  <div class="wrap"><table>
+    <tr><th>Màn hình</th><th>File</th><th>Chức năng</th></tr>
+    <tr><td>Cổng xác thực</td><td><code>auth_gate.dart</code></td><td>Quyết định vào đăng nhập hay vào app theo phiên đã lưu</td></tr>
+    <tr><td>Đăng nhập</td><td><code>login_screen.dart</code></td><td>Tên đăng nhập + mật khẩu; liên kết sang đăng ký</td></tr>
+    <tr><td>Đăng ký</td><td><code>register_screen.dart</code></td><td>Tên đăng nhập, email, mật khẩu</td></tr>
+    <tr><td>Khung chính</td><td><code>app_shell.dart</code></td><td>4 tab (Trang chủ, Nhắc thuốc, Trợ lý, Hồ sơ) + nút quét ở giữa</td></tr>
+    <tr><td>Trang chủ</td><td><code>home_tab.dart</code></td><td>Lời chào, ô tìm thuốc, lịch uống hôm nay, lối tắt (Lịch sử, Hỏi đáp, Tìm kiếm)</td></tr>
+    <tr><td>Tìm thuốc</td><td><code>medicine_search_screen.dart</code></td><td>Tìm theo tên, kết quả có nguồn</td></tr>
+    <tr><td>Quét / xử lý ảnh</td><td><code>process_image_screen.dart</code></td><td>Chụp hoặc chọn ảnh hộp thuốc, OCR, hiện kết quả</td></tr>
+    <tr><td>Hỏi đáp thuốc</td><td><code>agent_chat_screen.dart</code> + <code>chat_controller.dart</code></td><td>Chat với trợ lý, streaming, thẻ trích dẫn, xoá hội thoại</td></tr>
+    <tr><td>Lịch sử</td><td><code>history_screen.dart</code></td><td>Các lần tra cứu, xoá từng mục</td></tr>
+    <tr><td>Hồ sơ sức khoẻ</td><td><code>health_profile_screen.dart</code></td><td>Dị ứng, bệnh nền, thuốc đang dùng</td></tr>
+    <tr><td>Nhắc thuốc</td><td><code>reminder_screen.dart</code></td><td>Tạo/sửa/xoá lịch nhắc, bật tắt từng lịch</td></tr>
+    <tr><td>Hồ sơ của tôi</td><td><code>profile_tab.dart</code></td><td>Tài khoản, hồ sơ sức khoẻ, quyền riêng tư, đăng xuất</td></tr>
+    <tr><td>Đồng ý</td><td><code>consent_screen.dart</code></td><td>Màn hình đồng ý xử lý dữ liệu ở lần đầu</td></tr>
+    <tr><td>Quyền riêng tư</td><td><code>privacy_screen.dart</code></td><td>Thu hồi đồng ý, xoá tài khoản và dữ liệu</td></tr>
+  </table></div>
+  <h3>Thành phần dùng chung (<code>lib/widgets/</code>)</h3>
+  <p>Disclaimer y khoa, banner ngoại tuyến, brand header, ô nhập thông tin đăng nhập, thành phần giao diện "neu".</p>
+</section>
+
+<!-- ============================ CÔNG CỤ -->
+<section id="cong-cu">
+  <h2>Công cụ xây dựng</h2>
+
+  <h3>Frontend (Flutter 3.19.4 · Dart 3.3)</h3>
+  <div class="wrap"><table>
+    <tr><th>Công cụ / thư viện</th><th>Phiên bản</th><th>Dùng để</th></tr>
+    <tr><td>flutter_riverpod</td><td>^2.4.9</td><td>Quản lý trạng thái; <code>core/providers.dart</code> là điểm lắp ráp duy nhất</td></tr>
+    <tr><td>dio</td><td>^5.4.3+9</td><td>Gọi HTTP/SSE; <code>ApiClient</code> che bí mật trong log</td></tr>
+    <tr><td>flutter_secure_storage</td><td>^9.2.2</td><td>Lưu token (Android Keystore)</td></tr>
+    <tr><td>shared_preferences</td><td>^2.2.3</td><td>Cache offline dữ liệu công khai, cờ đồng ý</td></tr>
+    <tr><td>sqflite + path_provider</td><td>^2.3.2 · ^2.1.3</td><td>SQLite cục bộ (hồ sơ sức khoẻ, nhắc thuốc)</td></tr>
+    <tr><td>google_mlkit_text_recognition</td><td>^0.13.0</td><td>OCR trên máy</td></tr>
+    <tr><td>flutter_local_notifications + timezone</td><td>^17.2.1 · ^0.9.4</td><td>Nhắc thuốc đúng giờ, lặp theo thứ</td></tr>
+    <tr><td>image_picker</td><td>^1.1.2</td><td>Chụp / chọn ảnh</td></tr>
+    <tr><td>intl + gen-l10n</td><td>0.18.1</td><td>Hai ngôn ngữ vi/en</td></tr>
+    <tr><td>http</td><td>^0.13.6</td><td>Còn lại từ bản cũ (đã thay bằng dio ở các tầng mới)</td></tr>
+    <tr><td>flutter_lints</td><td>^4.0.0</td><td>Phân tích tĩnh (<code>flutter analyze</code>)</td></tr>
+  </table></div>
+
+  <h3>Backend (Python 3.12 · <code>server/medassist-core</code>)</h3>
+  <div class="wrap"><table>
+    <tr><th>Công cụ</th><th>Dùng để</th></tr>
+    <tr><td>FastAPI + uvicorn + pydantic</td><td>Web API, kiểm tra dữ liệu, tài liệu tự sinh (<code>/docs</code>, <code>openapi.json</code>)</td></tr>
+    <tr><td>PyJWT (HS256)</td><td>Access/refresh token</td></tr>
+    <tr><td>bcrypt</td><td>Băm mật khẩu</td></tr>
+    <tr><td>SQLite</td><td>CSDL phía server (users, medicines, history, refresh_tokens)</td></tr>
+    <tr><td>mcp[cli] + httpx-sse</td><td>MCP server/client; <code>httpx</code> cũng là client của adapter Ollama</td></tr>
+    <tr><td>pytest, <code>eval.py</code></td><td>Kiểm thử và bộ đánh giá agent</td></tr>
+    <tr><td>Docker (<code>Dockerfile</code>, <code>docker-compose.yml</code>)</td><td>Đóng gói; <b>chưa build thử</b> vì máy dev không có Docker</td></tr>
+  </table></div>
+
+  <h3>AI</h3>
+  <div class="wrap"><table>
+    <tr><th>Thành phần</th><th>Chi tiết</th></tr>
+    <tr><td>Truy hồi (retrieval)</td><td>BM25 có chuẩn hoá tiếng Việt không dấu, neo theo tên thuốc (<code>app/retrieval.py</code>)</td></tr>
+    <tr><td>Agent &amp; orchestrator</td><td>Planner theo luật xác định (không để LLM chọn công cụ); lớp phòng thủ trước/trong/sau khi sinh</td></tr>
+    <tr><td>Kiểm chứng trích dẫn</td><td><code>verify_grounding()</code>: mọi dòng phải có mã tồn tại và bám nội dung nguồn (≥ 60% từ)</td></tr>
+    <tr><td>LLMProvider</td><td><code>mock</code> (mặc định) và <code>ollama</code> (cục bộ, chỉ loopback)</td></tr>
+    <tr><td>Ollama 0.40.12 + qwen2.5:3b</td><td>Cài ở <code>D:\ollama\app</code>, model ở <code>D:\ollama\models</code>, nghe trên <code>127.0.0.1:11434</code></td></tr>
+    <tr><td>ML Kit OCR</td><td>Mô hình học máy chạy trên điện thoại</td></tr>
+    <tr><td>MCP</td><td>Đóng gói search_drug và check_interaction</td></tr>
+  </table></div>
+
+  <h3>Build, phát hành và môi trường</h3>
+  <div class="wrap"><table>
+    <tr><th>Công cụ</th><th>Chi tiết</th></tr>
+    <tr><td>Gradle + R8/ProGuard</td><td>Release bật <code>minifyEnabled</code>, <code>shrinkResources</code>; luật trong <code>android/app/proguard-rules.pro</code> (đừng xoá)</td></tr>
+    <tr><td>Flavor</td><td><code>dev</code>, <code>staging</code>, <code>prod</code> — mọi lệnh run/build cần <code>--flavor</code></td></tr>
+    <tr><td>Bản phát hành</td><td><code>.aab</code> prod khoảng 41 MB; ký bằng khoá debug cho đến khi có <code>key.properties</code> thật</td></tr>
+    <tr><td>JDK / Android SDK / AVD</td><td>JDK 17 (<code>D:\dev\jdk17</code>), SDK <code>D:\Android\Sdk</code>, máy ảo <code>ueh_pixel</code> (<code>D:\dev\avd</code>)</td></tr>
+    <tr><td>Flutter SDK</td><td><code>D:\flutter_windows_3.19.4-stable\flutter</code> (không nằm trong PATH; script demo tự đặt)</td></tr>
+    <tr><td>CI</td><td>GitHub Actions: <code>.github/workflows/ci.yml</code></td></tr>
+    <tr><td>Công cụ kiểm thử API</td><td>Swagger UI (<code>/docs</code>) và collection Postman (<code>docs/postman/</code>, 19 request); dự án gốc không dùng Postman</td></tr>
+    <tr><td>Server giả lập</td><td><code>tools/mock_server</code> (Flask, chỉ localhost, dữ liệu giả)</td></tr>
+    <tr><td>Script demo</td><td><code>tools/demo_server.ps1 [-Llm]</code>, <code>tools/demo_app.ps1 [-Build]</code></td></tr>
+    <tr><td>Quy tắc dự án</td><td><code>AGENTS.md</code>: bảo mật bắt buộc cho mọi người và công cụ AI làm việc trong thư mục</td></tr>
+  </table></div>
+</section>
+
+<!-- ============================ KIẾN TRÚC -->
+<section id="kien-truc">
+  <h2>Kiến trúc</h2>
+  <pre>┌──────────────────────── ĐIỆN THOẠI / MÁY ẢO ────────────────────────┐
+│ Flutter app                                                          │
+│  ├─ screens   → chỉ biết "port", không tự gọi mạng                   │
+│  ├─ Riverpod providers (core/providers.dart = điểm lắp ráp duy nhất) │
+│  ├─ adapters: HTTP · SSE agent · OCR on-device · hybrid · token store│
+│  ├─ ML Kit OCR           (chạy trên máy)                             │
+│  ├─ SQLite health_profile.db   hồ sơ · nhắc thuốc · nhật ký uống     │
+│  ├─ flutter_secure_storage     access/refresh token                  │
+│  └─ shared_preferences         cache công khai · cờ đồng ý           │
+└───────────────────────────┬──────────────────────────────────────────┘
+                            │ HTTP(S) + SSE  /v1/...
+┌───────────────────────────▼──────────────────────────────────────────┐
+│ FastAPI medassist-core                                               │
+│  ├─ routers: auth · data (search/history) · agent (ask/chat/usage)   │
+│  ├─ Orchestrator → Tool registry (hoặc MCP server)                   │
+│  ├─ Retrieval BM25 + neo tên → trích dẫn → verify_grounding          │
+│  ├─ LLMProvider: mock (mặc định) | ollama ──► 127.0.0.1:11434        │
+│  └─ SQLite: users · medicines · history · refresh_tokens             │
+└──────────────────────────────────────────────────────────────────────┘</pre>
+  <h3>Cấu trúc thư mục app (<code>lib/</code>)</h3>
+  <pre>domain/ports/   hợp đồng thuần Dart: AgentClient, MedicineAnalyzer, MedicineRepository, AuthRepository, VoiceAssistant
+data/adapters/  remote_*, sse_agent_client, ondevice_analyzer, hybrid_analyzer, secure_token_store, session_refresher
+data/models/    medicine, analysis_result, history_item, chat_message, health_profile, user
+data/local/     health_database, cache_store, consent_store, notification_service
+core/           config (--dart-define), network (ApiClient, Result), theme, providers.dart
+screens/ widgets/ l10n/</pre>
+  <h3>Luồng một câu hỏi trong chat</h3>
+  <pre>câu hỏi → lọc ngoài phạm vi / prompt injection ──► từ chối nếu vi phạm
+        → planner chọn công cụ → công cụ chạy trên dữ liệu thuốc → trích dẫn
+        → (nếu bật LLM thật) LLM diễn đạt lại → verify_grounding
+              đạt  → dùng câu của LLM       không đạt → dùng câu trích nguyên văn
+        → gắn thuốc đang dùng + disclaimer → phát SSE: tool_call · citation · token · done</pre>
+  <div class="note good">Nguyên tắc: <b>ports &amp; adapters</b>, contract-first, offline-first. Đổi backend chỉ sửa <code>core/providers.dart</code>, có test canh. LLM không quyết định có trả lời hay không, cũng không chọn công cụ.</div>
+</section>
+
+<!-- ============================ API & DỮ LIỆU -->
+<section id="api-du-lieu">
+  <h2>API backend (tiền tố <code>/v1</code>)</h2>
+  <div class="wrap"><table>
+    <tr><th>Nhóm</th><th>Endpoint</th><th>Token</th></tr>
+    <tr><td>Health</td><td>GET <code>/health</code></td><td>Không</td></tr>
+    <tr><td>Auth</td><td>POST <code>/auth/register</code> · <code>/auth/login</code> · <code>/auth/refresh</code> · <code>/auth/logout</code> · <code>/auth/validate-password</code></td><td>Không</td></tr>
+    <tr><td>Auth</td><td>GET <code>/auth/me</code> · POST <code>/auth/delete-account</code></td><td>Có</td></tr>
+    <tr><td>Thuốc</td><td>GET <code>/search?name=&amp;limit=&amp;offset=</code> · GET <code>/medicines</code></td><td>Không</td></tr>
+    <tr><td>Lịch sử</td><td>GET, POST <code>/history</code> · DELETE <code>/history/{id}</code></td><td>Có</td></tr>
+    <tr><td>Ảnh</td><td>POST <code>/analyze</code> — giữ chỗ, trả 501 (OCR chạy trên máy)</td><td>Có</td></tr>
+    <tr><td>Agent</td><td>POST <code>/agent/ask</code> · POST <code>/agent/chat</code> (SSE) · GET <code>/agent/usage</code> · DELETE <code>/agent/session/{id}</code></td><td>Có</td></tr>
+  </table></div>
+
+  <h2>Dữ liệu và nơi lưu</h2>
+  <div class="wrap"><table>
+    <tr><th>Dữ liệu</th><th>Nơi lưu</th><th>Rời máy?</th></tr>
+    <tr><td>Access/refresh token (app)</td><td>Điện thoại — Keystore (<code>flutter_secure_storage</code>)</td><td>Chỉ trong header tới server</td></tr>
+    <tr><td>Hồ sơ sức khoẻ, lịch nhắc, nhật ký uống</td><td>Điện thoại — <code>health_profile.db</code> (SQLite)</td><td>Không</td></tr>
+    <tr><td>Cache tìm kiếm, cờ đồng ý</td><td>Điện thoại — <code>shared_preferences</code></td><td>Không</td></tr>
+    <tr><td>Ảnh hộp thuốc</td><td>Điện thoại; OCR tại chỗ</td><td>Không</td></tr>
+    <tr><td>Tài khoản (mật khẩu băm)</td><td>Server — bảng <code>users</code></td><td>—</td></tr>
+    <tr><td>Refresh token (chỉ bản băm)</td><td>Server — bảng <code>refresh_tokens</code></td><td>—</td></tr>
+    <tr><td>Danh mục thuốc</td><td>Server — bảng <code>medicines</code> (nạp từ <code>data/medicines.dev.csv</code>)</td><td>—</td></tr>
+    <tr><td>Lịch sử tra cứu</td><td>Server — bảng <code>history</code>, có retention</td><td>—</td></tr>
+    <tr><td>Phiên chat, số liệu sử dụng, bộ đếm giới hạn</td><td>Server — RAM (mất khi khởi động lại)</td><td>—</td></tr>
+    <tr><td>Khoá bí mật JWT</td><td>Biến môi trường <code>MEDASSIST_SECRET_KEY</code> (≥ 32 byte)</td><td>Không nằm trong mã nguồn</td></tr>
+  </table></div>
+  <h3>Biến môi trường backend</h3>
+  <div class="wrap"><table>
+    <tr><th>Biến</th><th>Ý nghĩa</th></tr>
+    <tr><td><code>MEDASSIST_SECRET_KEY</code></td><td>Khoá ký JWT, bắt buộc, ≥ 32 byte; thiếu thì server không khởi động</td></tr>
+    <tr><td><code>MEDASSIST_DB</code></td><td>Đường dẫn file SQLite (mặc định <code>:memory:</code>)</td></tr>
+    <tr><td><code>MEDASSIST_HISTORY_RETENTION_DAYS</code></td><td>Số ngày giữ lịch sử</td></tr>
+    <tr><td><code>MEDASSIST_USE_MCP</code></td><td><code>1</code> để gọi công cụ qua MCP</td></tr>
+    <tr><td><code>MEDASSIST_LLM</code>, <code>MEDASSIST_OLLAMA_MODEL</code>, <code>MEDASSIST_OLLAMA_URL</code></td><td>Bật LLM cục bộ; URL chỉ nhận loopback</td></tr>
+  </table></div>
+  <h3>Cấu hình app (<code>--dart-define</code>)</h3>
+  <p><code>API_BASE_URL</code> · <code>API_PREFIX</code> · <code>BACKEND</code> (<code>core</code> | <code>flask</code>) · <code>ANALYZER</code> (<code>remote</code> | <code>ondevice</code> | <code>hybrid</code>) · <code>APP_FLAVOR</code>. Bản release bắt buộc HTTPS.</p>
+</section>
+
+<!-- ============================ BẢO MẬT -->
+<section id="bao-mat">
+  <h2>Bảo mật và riêng tư</h2>
+  <div class="wrap"><table>
+    <tr><th>Nguyên tắc</th><th>Cách làm</th></tr>
+    <tr><td>Token</td><td>Chỉ ở secure storage; không dùng shared_preferences, không log</td></tr>
+    <tr><td>Mật khẩu</td><td>bcrypt phía server; không lưu plaintext</td></tr>
+    <tr><td>Không log dữ liệu nhạy cảm</td><td>Che Authorization, mật khẩu, email, tên thuốc đang dùng, đường dẫn ảnh, nội dung chat; access log của uvicorn đã tắt vì chứa từ khoá tìm thuốc</td></tr>
+    <tr><td>Phân quyền</td><td>Theo <code>user_id</code> ở mọi endpoint lịch sử và agent; truy vấn tham số hoá</td></tr>
+    <tr><td>Mạng</td><td>Release bắt buộc HTTPS; không tắt kiểm tra chứng chỉ; không cleartext ngoài debug</td></tr>
+    <tr><td>Dữ liệu ra ngoài</td><td>Không gửi ra ngoài máy khi chưa có đồng ý trong UI + khử định danh + ghi PRIVACY.md. LLM cục bộ (Ollama) chỉ loopback, không proxy, không redirect</td></tr>
+    <tr><td>Chống bịa y khoa</td><td>Phải có trích dẫn; <code>verify_grounding</code>; từ chối khi không có căn cứ; dữ liệu mẫu bị gắn cảnh báo</td></tr>
+    <tr><td>Chống prompt injection</td><td>Nguồn là dữ liệu đã escape; bộ lọc câu hỏi; kiểm chứng sau khi sinh</td></tr>
+    <tr><td>Quyền Android</td><td>Chỉ thêm thông báo, báo thức chính xác, khởi động lại máy (cho nhắc thuốc); không mở rộng khi chưa hỏi</td></tr>
+    <tr><td>Xoá dữ liệu</td><td>Xoá tài khoản, xoá từng lịch sử, xoá hội thoại, đăng xuất xoá cache</td></tr>
+  </table></div>
+  <h3>Khoảng hở đã biết</h3>
+  <ul>
+    <li>SQLite cục bộ và cache chưa mã hoá; CSDL server chưa mã hoá khi lưu.</li>
+    <li>Access token còn hiệu lực tối đa 15 phút sau khi xoá tài khoản (dữ liệu đã bị xoá nên không đọc được gì).</li>
+    <li>Retention mặc định tắt; chưa có lịch dọn refresh token hết hạn.</li>
+    <li>Chưa có báo lỗi crash.</li>
+  </ul>
+</section>
+
+<!-- ============================ KIỂM THỬ -->
+<section id="kiem-thu">
+  <h2>Kiểm thử và chất lượng</h2>
+  <div class="wrap"><table>
+    <tr><th>Loại</th><th>Kết quả</th></tr>
+    <tr><td><code>flutter analyze</code></td><td>Sạch, chỉ còn 1 mục thông tin (<code>depend_on_referenced_packages</code> cho <code>path</code>)</td></tr>
+    <tr><td><code>flutter test</code></td><td>330 test đạt (26 file)</td></tr>
+    <tr><td><code>pytest</code> (backend)</td><td>Toàn bộ đạt (15 file test, gồm 33 test cho adapter Ollama)</td></tr>
+    <tr><td><code>eval.py</code></td><td>109/109 ca (từ chối, trích dẫn, chống injection)</td></tr>
+    <tr><td>Kiểm thử sống Dart ↔ server</td><td><code>tools/medassist_core/core_live_check_test.dart</code></td></tr>
+    <tr><td>Collection Postman</td><td>19/19 request trả đúng mã trạng thái (kiểm bằng script gọi localhost)</td></tr>
+    <tr><td>Chạy thật trên máy ảo Android</td><td>Đăng nhập, tìm thuốc, chat có trích dẫn, hồ sơ, nhắc, xoá tài khoản</td></tr>
+    <tr><td>Build release</td><td><code>.aab</code> prod build được; APK release chạy trên máy ảo</td></tr>
+  </table></div>
+  <h3>Lỗi thật đã tìm và sửa trong quá trình làm</h3>
+  <ul>
+    <li>R8 báo thiếu lớp ML Kit → thêm <code>-dontwarn</code> trong <code>proguard-rules.pro</code>.</li>
+    <li>Bản release crash nhắc thuốc do Gson <code>TypeToken</code> → thêm luật giữ lớp.</li>
+    <li>Splash trắng không nhìn thấy → đổi nền splash sang màu teal.</li>
+    <li>Retrieval kéo nhầm thuốc khác → neo theo tên thuốc.</li>
+    <li>Adapter LLM nhận nội dung không phải chuỗi → từ chối (test bắt được).</li>
+    <li><b>Nhắc thuốc không đặt được:</b> tên múi giờ tự đặt ("device") làm Java ném <code>ZoneRulesException</code> → đổi sang <code>UTC+07:00</code> (chỉ lộ khi chạy máy ảo).</li>
+    <li><b>MCP không chạy được thật:</b> tiến trình MCP không nhận <code>MEDASSIST_DB</code> (DB rỗng) và code đọc <code>isError</code> trong khi SDK dùng <code>is_error</code> → sửa cả hai, thêm test chạy tiến trình con.</li>
+  </ul>
+</section>
+
+<!-- ============================ TIẾN ĐỘ -->
+<section id="tien-do">
+  <h2>Tiến độ ≈ 90%</h2>
+  <div class="bar"><i style="width:90%"></i></div>
+  <h3>Lộ trình 30 ngày</h3>
+  <div class="wrap"><table>
+    <tr><th>Giai đoạn</th><th>Nội dung</th><th>Trạng thái</th></tr>
+    <tr><td>P0 · Day 0–4</td><td>Cứu project: nâng SDK, cấu hình nền tảng, test và CI</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>P1 · Day 5–14</td><td>Nền tảng client: config, HTTP, model, ports, adapters, đăng nhập, cache, theme, i18n</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>P2 · Day 15–24</td><td>Backend: auth, dữ liệu thuốc, RAG có trích nguồn, agent, eval</td><td><span class="tag ok">Xong</span></td></tr>
+    <tr><td>P3 · Day 25–30</td><td>Chat streaming, OCR on-device, nhắc thuốc, MCP, riêng tư, release</td><td><span class="tag warn">Gần xong</span></td></tr>
+  </table></div>
+  <h3>Còn thiếu / việc của chủ dự án</h3>
+  <ul>
+    <li><b>Chưa làm:</b> crash reporting (chọn SDK + consent + PRIVACY), trợ lý giọng nói, LLM đám mây (cần consent UI + khử định danh + PRIVACY).</li>
+    <li><b>Cần chủ dự án:</b> tạo keystore + <code>android/key.properties</code>, server HTTPS thật, beta nội bộ, <code>git tag v1.0.0</code> (toàn bộ thay đổi từ Day 9 vẫn chưa commit).</li>
+    <li><b>Đã thử trên máy ảo (28/10):</b> thông báo nhắc nổ đúng 08:00, OCR chạy khi bật chế độ máy bay, MCP chạy qua client thật. <b>Chưa thử trên điện thoại thật</b>, và chưa chạy hết 8 tình huống test tay.</li>
+    <li><b>Backlog:</b> mã hoá SQLite cục bộ, hàng đợi offline, dữ liệu thuốc chính thức (hiện chỉ 10 thuốc mẫu nên câu hỏi liều dùng/tương tác bị từ chối), iOS Podfile, thay icon tạm bằng thiết kế thật, build Docker.</li>
+  </ul>
+  <h3>Tài liệu trong <code>docs/</code></h3>
+  <div class="wrap"><table>
+    <tr><th>File</th><th>Nội dung</th></tr>
+    <tr><td>ROADMAP.md</td><td>Kế hoạch theo ngày và nhật ký thực thi</td></tr>
+    <tr><td>RELEASE.md</td><td>Việc cần chủ dự án làm khi phát hành, bảng quyết định</td></tr>
+    <tr><td>PRIVACY.md</td><td>Dữ liệu nào ở đâu, điều kiện gửi dữ liệu ra ngoài</td></tr>
+    <tr><td>DECISIONS.md · TESTING.md · TROUBLESHOOTING.md · SETUP_WINDOWS.md</td><td>Quyết định thiết kế, độ phủ test, lỗi môi trường đã gặp, cài đặt Windows</td></tr>
+    <tr><td>LLM_LOCAL.md · VOICE_ASSISTANT.md</td><td>Hướng dẫn LLM cục bộ · hướng đi trợ lý giọng nói</td></tr>
+    <tr><td>DEMO.md · presentation.html · architecture.html · project-overview.html</td><td>Kịch bản demo, slide, trang kiến trúc, trang này</td></tr>
+    <tr><td>project-map.html</td><td>Sơ đồ TƯƠNG TÁC quét tự động từ mã: 9 luồng chạy, bấm vào từng file để xem ai gọi ai, dữ liệu vào/ra. Sinh bằng <code>tools\open_project_map.ps1</code></td></tr>
+    <tr><td>postman/</td><td>Collection Postman chạy với server local</td></tr>
+  </table></div>
+</section>
+
+<!-- ============================ CHẠY & DEMO -->
+<section id="chay">
+  <h2>Chạy và demo</h2>
+  <h3>Cách nhanh nhất (máy ảo)</h3>
+  <pre># cửa sổ 1 — server (khoá giả, chỉ localhost, tự nạp 10 thuốc mẫu)
+.\tools\demo_server.ps1          # LLM mock (ổn định)
+.\tools\demo_server.ps1 -Llm     # LLM thật chạy trên máy (Ollama)
+
+# cửa sổ 2 — máy ảo + app bản dev (mặc định không build lại)
+.\tools\demo_app.ps1             # thêm -Build khi vừa sửa code Dart</pre>
+  <p>Tài khoản demo (dữ liệu giả): tên đăng nhập <code>demo</code>, mật khẩu <code>Demo@12345678</code>. Ô đăng nhập dùng <b>tên đăng nhập</b>, không dùng email.</p>
+  <h3>Chạy trên điện thoại thật</h3>
+  <pre>adb reverse tcp:8000 tcp:8000
+flutter run --flavor dev --dart-define=APP_FLAVOR=dev --dart-define=API_BASE_URL=http://127.0.0.1:8000</pre>
+  <h3>Kiểm thử</h3>
+  <pre>flutter analyze ; flutter test
+cd server\medassist-core ; python -m pytest -q ; python eval.py</pre>
+  <h3>Build bản phát hành</h3>
+  <pre>flutter build appbundle --release --flavor prod --dart-define=APP_FLAVOR=prod --dart-define=API_BASE_URL=https://ten-server-https-cua-ban</pre>
+  <div class="note">Lưu ý RAM: máy 15,6 GB, chạy cùng lúc Ollama + máy ảo + Gradle dễ hết bộ nhớ ("paging file is too small"). Trước giờ demo hãy đóng bớt Chrome/IDE và đừng build lại.</div>
+  <div class="note">Câu hỏi nên dùng khi demo: "Panadol có tác dụng phụ gì", "Panadol công dụng gì". Câu hỏi liều dùng hoặc tương tác sẽ bị từ chối — đó là thiết kế an toàn với dữ liệu mẫu.</div>
+</section>
+
+</main>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('#tabs button'));
+  var secs = Array.prototype.slice.call(document.querySelectorAll('main section'));
+  function show(id) {
+    tabs.forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-t') === id)); });
+    secs.forEach(function (s) { s.classList.toggle('active', s.id === id); });
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  }
+  tabs.forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-t')); }); });
+  var h = (location.hash || '').slice(1);
+  if (h && document.getElementById(h)) show(h);
+})();
+</script>
+</body>
+</html>

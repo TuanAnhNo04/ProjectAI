@@ -19,6 +19,7 @@ thị thông tin không truy được nguồn. `Citation` nên `source` là bắ
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter
 from dataclasses import dataclass
 
@@ -129,6 +130,72 @@ def _coverage(query_terms: list[str], doc_counts: Counter[str]) -> float:
     return len(singles & set(doc_counts)) / len(singles)
 
 
+def _named_medicines(
+    medicines: list[MedicineResponse], terms: list[str]
+) -> list[MedicineResponse]:
+    """Thuốc được **gọi đích danh** trong câu hỏi.
+
+    Một từ là "định danh" khi nằm trong tên thuốc A mà **không** xuất hiện trong văn
+    bản của thuốc nào khác (vd "panadol"). Hoạt chất như "paracetamol" có mặt ở nhiều
+    thuốc nên KHÔNG định danh — hỏi theo hoạt chất vẫn ra mọi thuốc chứa nó.
+
+    ⚠️ Vì sao cần: đoạn trích có tiền tố nhãn ("Tác dụng phụ: ..."), nên câu "Panadol
+    có tác dụng phụ gì" khớp nhãn của Decolgen/Hapacol/... dù người dùng chỉ hỏi
+    Panadol. Từ có chữ số (hàm lượng "500mg") bị bỏ qua vì dùng chung nhiều thuốc.
+    """
+    candidates = {t for t in terms if " " not in t and t.isalpha()}
+    if not candidates:
+        return []
+
+    def _vocab(med: MedicineResponse) -> set[str]:
+        parts = [med.name] + [getattr(med, f, None) or "" for f, _ in CITABLE_FIELDS]
+        return {tok for part in parts for tok in tokenize(part)}
+
+    vocabs = [(med, _vocab(med), set(tokenize(med.name))) for med in medicines]
+    named: list[MedicineResponse] = []
+    for term in candidates:
+        # Danh mục thật có nhiều sản phẩm cùng tên ("Panadol", "Panadol Extra"...):
+        # từ vẫn là định danh nếu nó nằm trong TÊN của cả nhóm và không xuất hiện ở
+        # văn bản của thuốc nào ngoài nhóm.
+        owners = [med for med, _, names in vocabs if term in names]
+        if not owners:
+            continue
+        if any(term in v for _, v, names in vocabs if term not in names):
+            continue
+        named.extend(m for m in owners if all(m is not n for n in named))
+    return named
+
+
+#: Cụm hỏi về TRƯỜNG thông tin (đã bỏ dấu) -> trường tương ứng. Các âm tiết của cụm
+#: không được dùng để so khớp nội dung: bỏ dấu thì "tác" = "tặc" = "tắc", nên "tác
+#: dụng phụ" khớp nhầm "ô tặc cốt", "hương phụ" trong thành phần thuốc đông y.
+_FIELD_INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("tac", "dung", "phu"), "side_effects"),
+    (("tac", "dung"), "uses"),
+    (("cong", "dung"), "uses"),
+    (("thanh", "phan"), "composition"),
+    (("hoat", "chat"), "composition"),
+)
+
+
+_VARIANT_RE = re.compile(r"(?=.*[a-z])(?=.*\d)[a-z0-9]+")
+_STRENGTH_RE = re.compile(r"\d+(?:mg|mcg|g|ml|iu|ui|%)?")
+
+
+def _field_intent(question: str, terms: list[str]) -> tuple[str | None, list[str]]:
+    """(trường được hỏi, từ khoá còn lại sau khi bỏ âm tiết của cụm hỏi)."""
+    tokens = tokenize(question)
+    for phrase, field in _FIELD_INTENTS:
+        n = len(phrase)
+        if any(tuple(tokens[i : i + n]) == phrase for i in range(len(tokens) - n + 1)):
+            rest = list(terms)
+            for syllable in phrase:
+                if syllable in rest:
+                    rest.remove(syllable)
+            return field, rest
+    return None, terms
+
+
 def build_citations(
     medicines: list[MedicineResponse],
     question: str,
@@ -143,7 +210,16 @@ def build_citations(
     terms = content_tokens(question)
     if not terms:
         return []
+    wanted_field, terms = _field_intent(question, terms)
+    if not terms:
+        # Chỉ hỏi "tác dụng phụ là gì" mà không nêu thuốc nào -> không có căn cứ.
+        return []
     query_terms = terms + bigrams(terms)
+    # Mã biến thể chữ+số ("d3", "b12") phải có mặt: "Vitamin D3" không được trả lời
+    # bằng thuốc chỉ chứa "vitamin". Hàm lượng ("500mg", "500") không tính.
+    variants = {t for t in terms if _VARIANT_RE.fullmatch(t) and not _STRENGTH_RE.fullmatch(t)}
+
+    medicines = _named_medicines(medicines, terms) or medicines
 
     hits: list[Retrieved] = []
     counter = 0
@@ -153,12 +229,19 @@ def build_citations(
             value = getattr(med, field, None)
             if not value:
                 continue
-            text = f"{med.name} — {label}: {value}"
+            # Hoạt chất là một phần danh tính của thuốc: "tác dụng phụ của
+            # paracetamol" phải khớp tác dụng phụ của mọi thuốc chứa paracetamol.
+            identity = med.name
+            if field != "composition" and med.composition:
+                identity = f"{med.name} ({med.composition})"
+            text = f"{identity} — {label}: {value}"
             doc_terms = _terms_of(text)
             score = _score(query_terms, doc_terms)
             if score < MIN_RELEVANCE_SCORE:
                 # Trùng từ bắt gặp cho điểm > 0, nhưng câu hỏi không liên quan
                 # thì điểm rất thấp -> không phải căn cứ.
+                continue
+            if variants and not variants <= set(doc_terms):
                 continue
             if _coverage(query_terms, Counter(doc_terms)) < MIN_TERM_COVERAGE:
                 # Điểm cao nhưng chỉ khớp vài từ bất hàm -> trả lời lệch câu hỏi.
@@ -175,13 +258,26 @@ def build_citations(
                         source=med.source,
                         is_authoritative=med.is_authoritative,
                         score=round(score, 4),
+                        source_url=med.source_url or "",
+                        retrieved_at=med.retrieved_at or "",
+                        license=med.license or "",
+                        reviewed_by=med.reviewed_by or "",
                     ),
                     score=score,
                 )
             )
 
+    # Hỏi đúng một trường (vd tác dụng phụ) -> chỉ trả đoạn của trường đó. Không có
+    # thì là "không đủ căn cứ", không lấy trường khác cho đủ (trả lời lệch câu hỏi).
+    if wanted_field:
+        hits = [h for h in hits if h.citation.field == wanted_field]
     hits.sort(key=lambda r: r.score, reverse=True)
-    return hits[:top_k]
+    hits = hits[:top_k]
+    # Mã trích dẫn đánh lại theo thứ tự hiển thị: R1, R2... liên tục.
+    return [
+        Retrieved(citation=h.citation.model_copy(update={"id": f"R{i}"}), score=h.score)
+        for i, h in enumerate(hits, start=1)
+    ]
 
 
 def has_authoritative_evidence(retrieved: list[Retrieved]) -> bool:

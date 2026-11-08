@@ -35,6 +35,7 @@ Dữ liệu hiện tại đều `is_authoritative=False`. Vì vậy:
 
 from __future__ import annotations
 
+import logging
 import re
 
 from app.llm import LLMProvider, get_llm_provider
@@ -46,6 +47,7 @@ from app.schemas import (
     LLMResponse,
     MedicineResponse,
 )
+from app.smalltalk import smalltalk_reply
 from app.textnorm import normalize
 
 #: Ma tu choi — on dinh de client xu ly, KHONG so sanh `message`.
@@ -54,22 +56,107 @@ REFUSAL_UNSUPPORTED = "unsupported_claim"
 REFUSAL_OUT_OF_SCOPE = "out_of_scope"
 REFUSAL_NO_SOURCE = "no_verified_source"
 
-#: Cau hoi vuot pham vi ung dung (chan doan, don thuoc, khan cap...).
-_OUT_OF_SCOPE_PATTERNS = (
-    r"ch[uẩ]n\s*[đoâ]n\s*o|ch[uẩ]n\s*[đoâ]n\s*đoán|diagnos",
-    r"k[eê]\s*[đd]\s*g[oô]|c[ấu]p\s*c[ưa]u|c[uấ]n g[ấp]",
-    r"li[eê]u\s*(d[uù]ng|d[uõ]|c[oô])|mg/kg|mcg/kg|iu/ng[àa]y",
-    r"t[uương]ng\s*t[aá]c|drug interaction",
-    r"k[eê]\s*thu[oô]c\s*n[àa]y\s*c[oô]|k[eê]\s*n[àa]y\s*[\u0111u\u01b0]",
-    r"bao\s*thai|ng[ọo] cho con b[úi]|s[ữu]a m[ẹ]",
-    r"thay\s*thu[oô]c\s*b[ạa]n|ng[ưng]\s*thu[oô]c|t[ắa]t\s*d[ư]",
-    r"bao nhi[eê]u|t[ươ]ng ph[ảa]n|s[ự] d[ụng] c[ư]",
+#: Cau hoi vuot pham vi ung dung (chan doan, lieu dung, khan cap...).
+#:
+#: ⭐ **Mọi mẫu viết trên chuỗi ĐÃ `normalize()`** (không dấu, chữ thường) — cùng
+#: nguyên tắc `app/textnorm.py`: chuẩn hoá trước, khớp sau. Bản cũ viết regex có dấu
+#: với character class (`[uương]`, `[eê]`) — một class chỉ khớp MỘT ký tự nên "tương",
+#: "liều", "chẩn đoán" lọt qua (eval Day 24 phát hiện 15 lỗ).
+_DIAGNOSIS_PATTERNS = (
+    r"chan doan",
+    r"diagnos",
+    r"ke don",
+    r"ke thuoc cho toi",
+    r"cap cuu",
+    r"emergency",
+    r"ngo doc",
+    r"overdose",
+    r"qua lieu",
 )
 
-_OUT_OF_SCOPE_RE = re.compile("|".join(_OUT_OF_SCOPE_PATTERNS), re.IGNORECASE)
+_DOSAGE_PATTERNS = (
+    r"lieu dung",
+    r"lieu luong",
+    r"lieu cao",
+    r"lieu thap",
+    r"lieu toi da",
+    r"lieu cho (tre|nguoi)",
+    r"dose",
+    r"dosage",
+    r"mg ?/ ?kg",
+    r"mcg ?/ ?kg",
+    r"iu ?/ ?ngay",
+    r"uong bao nhieu",
+    r"bao nhieu (vien|mg|ml|goi)",
+    r"uong .*bao nhieu",
+    r"bao nhieu .*(ngay|lan|gio)",
+    r"may vien",
+)
+
+#: Tách riêng vì `/v1/agent/chat` định tuyến nhóm này sang tool `check_interaction`
+#: (tool đó tự từ chối khi không có dữ liệu kiểm chứng — xem `app/tools.py`).
+_INTERACTION_SCOPE_PATTERNS = (
+    r"tuong tac",
+    r"tuong phan",
+    r"drug interaction",
+    r"interaction",
+)
+
+_SPECIAL_POPULATION_PATTERNS = (
+    r"mang thai",
+    r"co thai",
+    r"dang bau",
+    r"co bau",
+    r"pregnan",
+    r"cho con bu",
+    r"sua me",
+    r"breastfeed",
+)
+
+_STOP_TREATMENT_PATTERNS = (
+    r"ngung thuoc",
+    r"bo thuoc",
+    r"tu y (ngung|bo|doi)",
+    r"doi thuoc",
+    r"thay thuoc cua toi",
+)
+
+
+def _compile(patterns: tuple[str, ...]) -> re.Pattern[str]:
+    return re.compile("|".join(patterns))
+
+
+_BASE_SCOPE_RE = _compile(
+    _DIAGNOSIS_PATTERNS
+    + _DOSAGE_PATTERNS
+    + _SPECIAL_POPULATION_PATTERNS
+    + _STOP_TREATMENT_PATTERNS
+)
+_INTERACTION_SCOPE_RE = _compile(_INTERACTION_SCOPE_PATTERNS)
+
+
+def is_out_of_scope(question: str, *, allow_interaction: bool = False) -> bool:
+    """Câu hỏi có vượt phạm vi an toàn của ứng dụng không?
+
+    Args:
+        question: câu gốc của người dùng (có dấu hay không đều được).
+        allow_interaction: `True` ở luồng chat — câu hỏi tương tác thuốc được đi tới
+            tool `check_interaction` thay vì bị chặn sớm. Các nhóm khác (chẩn đoán,
+            liều dùng, thai kỳ, ngưng thuốc) **luôn** bị chặn.
+    """
+    flat = normalize(question)
+    if _BASE_SCOPE_RE.search(flat):
+        return True
+    return not allow_interaction and bool(_INTERACTION_SCOPE_RE.search(flat))
 
 #: Cau da trich dan trong cau tra loi: `- noi dung [R1]`
-_CITATION_RE = re.compile(r"\[([A-Za-z0-9_.-]{1,32})\]")
+_CITATION_RE = re.compile(
+    r"\[([A-Za-z0-9_.-]{1,32}(?:\s*,\s*[A-Za-z0-9_.-]{1,32})*)\]"
+)
+_MD_NOISE_RE = re.compile(r"[*_`#>]+")
+#: Dòng KHÔNG có mã trích dẫn nhưng không chứa khẳng định y khoa: lời dẫn kết thúc
+#: bằng ":" hoặc lời khuyên hỏi dược sĩ/bác sĩ. Cấm có chữ số (không thêm liều/số liệu).
+_NO_CLAIM_RE = re.compile(r"(duoc si|bac si|chuyen gia y te|nha thuoc)")
 
 DISCLAIMER = (
     "Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của dược sĩ hoặc "
@@ -117,6 +204,11 @@ def _refuse(reason: str, provider: str = "mock") -> AgentAnswerResponse:
     )
 
 
+def _log_reject(reason: str, **counts: int | bool) -> None:
+    """Chỉ ghi MÃ lý do + số đếm; không bao giờ ghi nội dung câu trả lời."""
+    logging.getLogger("medassist").warning("grounding reject: %s %s", reason, counts)
+
+
 def verify_grounding(
     text: str, citations: list[CitationResponse]
 ) -> tuple[bool, list[str]]:
@@ -137,30 +229,51 @@ def verify_grounding(
 
     used: list[str] = []
     for line in lines:
-        found = _CITATION_RE.findall(line)
+        # Markdown (**đậm**, `mã`, # tiêu đề) là trình bày, không phải nội dung.
+        line = _MD_NOISE_RE.sub("", line).strip()
+        if not line:
+            continue
+        found = [i.strip() for grp in _CITATION_RE.findall(line) for i in grp.split(",")]
         if not found:
+            flat = normalize(line)
+            no_digit = not any(ch.isdigit() for ch in flat)
+            if no_digit and (line.endswith(":") or _NO_CLAIM_RE.search(flat)):
+                continue  # lời dẫn / lời khuyên hỏi chuyên gia, không có khẳng định
             # Dòng không có trích dẫn -> mệnh lệnh không có căn cứ -> từ chối.
+            _log_reject("no_citation", n_words=len(flat.split()))
             return False, []
 
         cited = [i for i in found if i in valid_ids]
         if len(cited) != len(found):
             # Trích dẫn mã bịa -> nghi vấn toàn bộ câu trả lời.
+            _log_reject("unknown_citation")
             return False, []
 
         # Lấy phần nội dung bỏ mã trích dẫn ở cuối để so khớp.
-        body = _CITATION_RE.sub("", line).lstrip("- ").strip()
+        body = _CITATION_RE.sub("", line).lstrip("-•* ").strip()
         if not body:
+            _log_reject("empty_body")
             return False, []
         norm_body = normalize(body)
 
         matched = False
         for cite_id in cited:
             source = next(c for c in citations if c.id == cite_id)
-            if _is_supported_by(norm_body, source):
+            if _is_supported_by(norm_body, source) or _quote_with_gloss_ok(
+                norm_body, source
+            ):
                 matched = True
                 break
         if not matched:
             # Có mã trích dẫn nhưng nội dung không bám nguồn -> bịa.
+            _log_reject(
+                "not_supported", n_words=len(norm_body.split()), n_cites=len(cited),
+                quote_in_line=any(
+                    normalize(c.excerpt) in norm_body for c in citations if c.id in cited
+                ),
+                gloss_words=_gloss_stats(norm_body, citations, cited)[0],
+                new_numbers=_gloss_stats(norm_body, citations, cited)[1],
+            )
             return False, []
         used.extend(cited)
 
@@ -175,7 +288,7 @@ def _is_out_of_scope(question: str) -> bool:
     được dữ liệu khớp rồi mới từ chối thì dễ khiến người dùng tin rằng hệ thống
     *biết* nhưng không muốn nói. Từ chối sớm nói rõ: vấn đề là ngoài phạm vi.
     """
-    return bool(_OUT_OF_SCOPE_RE.search(question))
+    return is_out_of_scope(question)
 
 
 def answer_question(
@@ -196,6 +309,14 @@ def answer_question(
     ⚠️ Hàm này **không** ghi log nội dung câu hỏi/nguồn (`AGENTS.md` mục 3, D4).
     """
     llm = provider or get_llm_provider()
+
+    # Xã giao thuần: trả lời theo luật, không LLM/trích dẫn/từ chối.
+    chit = smalltalk_reply(question)
+    if chit is not None:
+        return AgentAnswerResponse(
+            answered=True, text=chit, refusal_reason=None, citations=[],
+            disclaimer=DISCLAIMER, provider="extractive",
+        )
 
     # Lớp 1: chủ đề ngoài phạm vi + prompt injection -> từ chối ngay.
     if _is_out_of_scope(question) or looks_like_injection(question):
@@ -244,6 +365,38 @@ def answer_question(
         disclaimer=DISCLAIMER,
         provider=llm.name,
     )
+
+
+#: Quy tắc "trích nguyên văn + giải thích ngắn" (chủ dự án duyệt 30/10/2026): khi nguồn là
+#: tiếng Anh mà câu trả lời tiếng Việt, ta không so khớp chữ được. Thay vào đó dòng phải
+#: CHỨA NGUYÊN VĂN đoạn trích (người dùng tự đối chiếu được), phần còn lại chỉ là lời giải
+#: thích ngắn và không được có con số mới.
+_MAX_GLOSS_WORDS = 14
+_MIN_QUOTE_CHARS = 4
+
+
+def _gloss_stats(norm_body: str, citations, cited) -> tuple[int, int]:
+    """(số từ ngoài đoạn trích, số con số mới) của nguồn khớp nhất — chỉ để chẩn đoán."""
+    best = (-1, -1)
+    for c in citations:
+        quote = normalize(c.excerpt)
+        if c.id in cited and quote and quote in norm_body:
+            rest = norm_body.replace(quote, " ", 1).split()
+            allowed = set(re.findall(r"\d+", quote + " " + normalize(c.medicine_name)))
+            new = sum(1 for w in rest for n in re.findall(r"\d+", w) if n not in allowed)
+            best = (len(rest), new)
+    return best
+
+
+def _quote_with_gloss_ok(norm_body: str, citation: CitationResponse) -> bool:
+    quote = normalize(citation.excerpt)
+    if len(quote) < _MIN_QUOTE_CHARS or quote not in norm_body:
+        return False
+    rest = norm_body.replace(quote, " ", 1).split()
+    if len(rest) > _MAX_GLOSS_WORDS:
+        return False
+    allowed_numbers = set(re.findall(r"\d+", quote + " " + normalize(citation.medicine_name)))
+    return all(n in allowed_numbers for w in rest for n in re.findall(r"\d+", w))
 
 
 def _is_supported_by(norm_body: str, citation: CitationResponse) -> bool:

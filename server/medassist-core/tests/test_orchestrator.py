@@ -179,7 +179,7 @@ def test_planner_khong_goi_tool_khi_khong_co_thong_bao(seed_repo):
     gọi tool. Điều đó **không sai** — nhưng tool phải tự từ chối, và agent phải nói
     rõ là không tìm thấy gì, chứ không bịa nội dung.
     """
-    res = chat("ừ", 1, seed_repo)
+    res = chat("ờm", 1, seed_repo)
     assert res.answered is False
     assert "Không tìm thấy" in _text_of(res)
     assert not any(s.kind == "citation" for s in res.steps)
@@ -403,3 +403,57 @@ def test_tham_so_tool_khong_lo_noi_dung_don_thuoc(seed_repo):
     tool_step = next(s for s in res.steps if s.kind == "tool")
     assert "Panadol" not in tool_step.text
     assert "ký tự" in tool_step.text  # chỉ gửi độ dài
+
+
+def test_tu_choi_ngoai_pham_vi_co_thong_diep_than_thien(seeded_client, auth):
+    """Luồng chat phải gửi cả VĂN BẢN từ chối, không chỉ mã `out_of_scope`.
+
+    Trước đây chỉ phát `refusal` + `done` nên app hiện mã thô hoặc bong bóng trống.
+    """
+    token = auth.token("annie")
+    resp = seeded_client.post(
+        "/v1/agent/chat",
+        json={"message": "Liều dùng Panadol là bao nhiêu", "session_id": "sess1234"},
+        headers=auth.header(token),
+    )
+    assert resp.status_code == 200
+    assert "event: refusal" in resp.text
+    assert "event: token" in resp.text
+    assert "không tư vấn" in resp.text
+    assert resp.text.rstrip().endswith('"}')  # kết thúc bằng sự kiện done
+    assert "event: done" in resp.text
+
+
+# ------------------------------------------------ chia token không mất ký tự ---
+
+
+def test_chunk_text_ghep_lai_dung_nguyen_van():
+    """Nối các token lại PHẢI ra đúng câu gốc (kể cả khoảng trắng, xuống dòng).
+
+    Lỗi cũ: bỏ khoảng trắng giữa các đoạn nên UI hiện "uses):Pain", "Nausea,allergic".
+    """
+    from app.orchestrator import _chunk_text
+
+    text = (
+        "- Panadol 500mg (composition): Paracetamol 500mg [R5]\n"
+        "- Panadol 500mg (uses): Pain relief, fever reduction [R6]\n\n"
+        "⚠️ Bạn đang dùng: Thuốc Giả. Hãy hỏi dược sĩ."
+    )
+    for size in (1, 10, 40, 80, 500):
+        assert "".join(_chunk_text(text, size)) == text, size
+
+
+def test_chunk_text_khong_cat_giua_chu():
+    from app.orchestrator import _chunk_text
+
+    chunks = _chunk_text("alpha beta gamma delta epsilon", size=12)
+    assert len(chunks) > 1
+    assert all(c.strip() in {"alpha", "beta", "gamma", "delta", "epsilon", "alpha beta", "beta gamma", "gamma delta", "delta epsilon"} or " " in c.strip() for c in chunks)
+    assert "".join(chunks) == "alpha beta gamma delta epsilon"
+
+
+def test_chunk_text_rong():
+    from app.orchestrator import _chunk_text
+
+    assert _chunk_text("") == []
+    assert _chunk_text("   ") == ["   "]

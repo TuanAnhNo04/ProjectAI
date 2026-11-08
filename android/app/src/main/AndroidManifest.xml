@@ -7,9 +7,22 @@
          thêm quyền thừa sẽ bị Google Play soi khi review. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- Nhắc uống thuốc (đã duyệt 2026-10-28): thông báo (Android 13+), báo thức chính xác,
+         và đặt lại lịch nhắc sau khi khởi động máy. Không đọc dữ liệu nào của người dùng. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Cơ sở y tế gần nhất: vị trí chỉ dùng để tính khoảng cách TRÊN MÁY, không gửi đi
+         đâu; xin lúc chạy khi người dùng bấm "Dùng vị trí của tôi". Gọi 115 dùng
+         ACTION_DIAL nên KHÔNG cần CALL_PHONE. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
+    <!-- allowBackup=false: hồ sơ sức khoẻ/lịch nhắc/cache nằm trong máy và KHÔNG được
+         Google Auto Backup đẩy lên đám mây (xem docs/PRIVACY.md). Không thêm quyền nào. -->
     <application
-        android:label="image_processing_app"
+        android:allowBackup="false"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -34,6 +47,17 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

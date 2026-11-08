@@ -54,7 +54,11 @@ void main() {
         auth.login('tuan', 'sai'),
         throwsA(
           isA<AppException>()
-              .having((e) => e.kind, 'kind', AppExceptionKind.unauthorized),
+              .having((e) => e.kind, 'kind', AppExceptionKind.unauthorized)
+              // ⚠️ KHÔNG được là "Phiên đăng nhập hết hạn": ở màn đăng nhập chưa có phiên nào.
+              .having((e) => e.message, 'message',
+                  'Tên đăng nhập hoặc mật khẩu không đúng.')
+              .having((e) => e.statusCode, 'statusCode', 401),
         ),
       );
       expect(await auth.currentToken(), isNull);
@@ -72,6 +76,8 @@ void main() {
         throwsA(
           isA<AppException>()
               .having((e) => e.kind, 'kind', AppExceptionKind.unauthorized)
+              .having((e) => e.message, 'message',
+                  'Tên đăng nhập hoặc mật khẩu không đúng.')
               .having((e) => e.detail, 'detail', 'Sai thông tin'),
         ),
       );

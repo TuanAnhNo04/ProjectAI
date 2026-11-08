@@ -1,0 +1,78 @@
+{
+  "_note": "DU LIEU MAU, CHUA KIEM CHUNG. Toa do/dia chi gan dung; xac minh truoc khi dung that. Khong co so dien thoai (chi dung 115). Xem docs/MEDICAL_FACILITIES.md.",
+  "emergency_number": "115",
+  "facilities": [
+    {
+      "name": "Bệnh viện Chợ Rẫy",
+      "address": "201B Nguyễn Chí Thanh, Quận 5, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.7579,
+      "lng": 106.6597,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Đại học Y Dược TP.HCM",
+      "address": "215 Hồng Bàng, Quận 5, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.7555,
+      "lng": 106.6640,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Nhân dân 115",
+      "address": "527 Sư Vạn Hạnh, Quận 10, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.7745,
+      "lng": 106.6660,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Nhi Đồng 1",
+      "address": "341 Sư Vạn Hạnh, Quận 10, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.7686,
+      "lng": 106.6697,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Thống Nhất",
+      "address": "1 Lý Thường Kiệt, Quận Tân Bình, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.7917,
+      "lng": 106.6530,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Nhân dân Gia Định",
+      "address": "1 Nơ Trang Long, Quận Bình Thạnh, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.8036,
+      "lng": 106.6955,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Từ Dũ",
+      "address": "284 Cống Quỳnh, Quận 1, TP.HCM",
+      "city": "TP.HCM",
+      "lat": 10.7687,
+      "lng": 106.6857,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Bạch Mai",
+      "address": "78 Giải Phóng, Quận Đống Đa, Hà Nội",
+      "city": "Hà Nội",
+      "lat": 21.0011,
+      "lng": 105.8410,
+      "verified": false
+    },
+    {
+      "name": "Bệnh viện Hữu nghị Việt Đức",
+      "address": "40 Tràng Thi, Quận Hoàn Kiếm, Hà Nội",
+      "city": "Hà Nội",
+      "lat": 21.0283,
+      "lng": 105.8463,
+      "verified": false
+    }
+  ]
+}

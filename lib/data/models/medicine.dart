@@ -22,15 +22,38 @@ class Medicine {
   });
 
   factory Medicine.fromJson(Map<String, dynamic> json) => Medicine(
-        name: asString(json[keyName]),
-        composition: asStringOrNull(json[keyComposition]),
-        uses: asStringOrNull(json[keyUses]),
-        sideEffects: asStringOrNull(json[keySideEffects]),
-        manufacturer: asStringOrNull(json[keyManufacturer]),
-        excellentReviewPercent: asPercent(json[keyExcellent]),
-        averageReviewPercent: asPercent(json[keyAverage]),
-        poorReviewPercent: asPercent(json[keyPoor]),
+        name: asString(_pick(json, keyName, coreName)),
+        composition:
+            asStringOrNull(_pick(json, keyComposition, coreComposition)),
+        uses: asStringOrNull(_pick(json, keyUses, coreUses)),
+        sideEffects:
+            asStringOrNull(_pick(json, keySideEffects, coreSideEffects)),
+        manufacturer:
+            asStringOrNull(_pick(json, keyManufacturer, coreManufacturer)),
+        excellentReviewPercent:
+            asPercent(_pick(json, keyExcellent, coreExcellent)),
+        averageReviewPercent: asPercent(_pick(json, keyAverage, coreAverage)),
+        poorReviewPercent: asPercent(_pick(json, keyPoor, corePoor)),
       );
+
+  /// Lấy giá trị theo khoá Flask [flaskKey], rơi về khoá `medassist-core`
+  /// [coreKey] khi thiếu — một model đọc được cả hai backend.
+  static Object? _pick(
+    Map<String, dynamic> json,
+    String flaskKey,
+    String coreKey,
+  ) =>
+      json[flaskKey] ?? json[coreKey];
+
+  /// --- Tên trường JSON của `medassist-core` (snake_case, `app/schemas.py`) ---
+  static const String coreName = 'name';
+  static const String coreComposition = 'composition';
+  static const String coreUses = 'uses';
+  static const String coreSideEffects = 'side_effects';
+  static const String coreManufacturer = 'manufacturer';
+  static const String coreExcellent = 'excellent_review_percent';
+  static const String coreAverage = 'average_review_percent';
+  static const String corePoor = 'poor_review_percent';
 
   /// --- Tên trường JSON của server (hợp đồng, đừng đổi) ---
   static const String keyName = 'Medicine_Name';

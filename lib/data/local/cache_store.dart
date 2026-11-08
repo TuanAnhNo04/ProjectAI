@@ -161,6 +161,15 @@ class CacheKeys {
   /// Danh sách lần quét ảnh (`GET /history`).
   static const String history = 'history';
 
+  /// Danh mục thuốc cho OCR trên máy (`GET /v1/medicines`) — dữ liệu công khai.
+  static const String catalog = 'catalog';
+
+  /// Tin tức thuốc/y tế (`GET /v1/news`) — dữ liệu công khai, dùng khi mất mạng.
+  static const String news = 'news';
+
+  /// Lời khuyên lối sống gần nhất (`POST /v1/agent/lifestyle`) — xoá khi đăng xuất.
+  static const String lifestyle = 'lifestyle';
+
   /// Kết quả tìm thuốc, tính theo từ khoá đã chuẩn hoá (`GET /search-medicine`).
   static const String searchPrefix = 'search.';
 

@@ -13,6 +13,7 @@ import 'package:image_processing_app/data/models/analysis_result.dart';
 import 'package:image_processing_app/data/models/history_item.dart';
 import 'package:image_processing_app/data/models/medicine.dart';
 import 'package:image_processing_app/data/models/user.dart';
+import 'package:image_processing_app/data/adapters/remote_auth_repository.dart';
 import 'package:image_processing_app/data/local/cache_store.dart';
 import 'package:image_processing_app/widgets/offline_banner.dart';
 import 'package:image_processing_app/domain/ports/auth_repository.dart';
@@ -42,10 +43,13 @@ ProviderContainer _container({
 }
 
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({this.fail = false, this.token = 'tok'});
+  _FakeAuthRepository({this.fail = false, this.token = 'tok', this.me});
 
   final bool fail;
   final String? token;
+
+  /// Người dùng mà `/me` trả về (null = backend không có endpoint / lỗi).
+  final User? me;
 
   @override
   Future<AuthSession> login(String username, String password) async {
@@ -74,6 +78,22 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<String?> currentToken() async => token;
+
+  @override
+  Future<User?> currentUser() async => me;
+
+  @override
+  Future<bool> refreshSession() async => false;
+
+  @override
+  Future<void> deleteAccount(String password) async {
+    if (password == 'sai') {
+      throw const AppException(
+        kind: AppExceptionKind.unauthorized,
+        message: 'Mật khẩu không đúng.',
+      );
+    }
+  }
 }
 
 class _FakeMedicineRepository implements MedicineRepository {
@@ -478,6 +498,26 @@ void main() {
       expect(session.token, 'tok');
     });
 
+    test('khôi phục phiên: lấy được tên người dùng từ /me', () async {
+      final container = _container(
+        auth: _FakeAuthRepository(me: const User(username: 'annie')),
+      );
+      await container.read(authControllerProvider.notifier).restoreSession();
+
+      final session = container.read(authControllerProvider).valueOrNull;
+      expect(session!.user.username, 'annie');
+      expect(session.isAuthenticated, isTrue);
+    });
+
+    test('khôi phục phiên: /me lỗi -> vẫn có phiên (chỉ thiếu tên)', () async {
+      final container = _container(auth: _FakeAuthRepository());
+      await container.read(authControllerProvider.notifier).restoreSession();
+
+      final session = container.read(authControllerProvider).valueOrNull;
+      expect(session!.isAuthenticated, isTrue);
+      expect(session.user.username, isEmpty);
+    });
+
     test('khôi phục phiên: không có token -> vẫn null', () async {
       final container = _container(auth: _FakeAuthRepository(token: null));
       await container.read(authControllerProvider.notifier).restoreSession();
@@ -492,6 +532,115 @@ void main() {
 
       await notifier.handleUnauthorized();
       expect(container.read(authControllerProvider).valueOrNull, isNull);
+    });
+
+    test('logout() xoá cache ngoại tuyến — không lộ dữ liệu cho người sau',
+        () async {
+      final cache = InMemoryCacheStore();
+      await cache.write(CacheKeys.history, <String, dynamic>{'history': []});
+      final container = _container(auth: _FakeAuthRepository(), cache: cache);
+      final notifier = container.read(authControllerProvider.notifier);
+      await notifier.login('an', 'matkhau');
+
+      await notifier.logout();
+
+      expect(await cache.read(CacheKeys.history), isNull);
+    });
+
+    test('deleteAccount thành công -> xoá cache và đưa về chưa đăng nhập',
+        () async {
+      final cache = InMemoryCacheStore();
+      await cache.write(CacheKeys.history, <String, dynamic>{'history': []});
+      final container = _container(auth: _FakeAuthRepository(), cache: cache);
+      final notifier = container.read(authControllerProvider.notifier);
+      await notifier.login('an', 'matkhau');
+
+      await notifier.deleteAccount('matkhau');
+
+      expect(await cache.read(CacheKeys.history), isNull);
+      expect(container.read(authControllerProvider).valueOrNull, isNull);
+    });
+
+    test('deleteAccount sai mật khẩu -> ném lỗi, GIỮ NGUYÊN phiên và cache',
+        () async {
+      final cache = InMemoryCacheStore();
+      await cache.write(CacheKeys.history, <String, dynamic>{'history': []});
+      final container = _container(auth: _FakeAuthRepository(), cache: cache);
+      final notifier = container.read(authControllerProvider.notifier);
+      await notifier.login('an', 'matkhau');
+
+      await expectLater(
+        notifier.deleteAccount('sai'),
+        throwsA(isA<AppException>()),
+      );
+
+      expect(await cache.read(CacheKeys.history), isNotNull);
+      expect(container.read(authControllerProvider).valueOrNull, isNotNull);
+    });
+
+    test('deleteAccount mật khẩu rỗng -> validation, không gọi server',
+        () async {
+      final container = _container(auth: _FakeAuthRepository());
+      final notifier = container.read(authControllerProvider.notifier);
+
+      await expectLater(
+        notifier.deleteAccount(''),
+        throwsA(isA<AppException>()
+            .having((e) => e.kind, 'kind', AppExceptionKind.validation)),
+      );
+    });
+
+    test('handleUnauthorized() cũng xoá cache ngoại tuyến', () async {
+      final cache = InMemoryCacheStore();
+      await cache.write(CacheKeys.history, <String, dynamic>{'history': []});
+      final container = _container(auth: _FakeAuthRepository(), cache: cache);
+      final notifier = container.read(authControllerProvider.notifier);
+      await notifier.login('an', 'matkhau');
+
+      await notifier.handleUnauthorized();
+
+      expect(await cache.read(CacheKeys.history), isNull);
+    });
+  });
+
+  group('ApiClient qua providers', () {
+    test('tokenRefresher chạy được, KHÔNG ném CircularDependencyError',
+        () async {
+      // Lỗi thật gặp trên máy ảo: apiClientProvider đọc authRepositoryProvider (vốn phụ
+      // thuộc apiClientProvider) -> mọi lần làm mới phiên đều ném lỗi vòng phụ thuộc.
+      // Kho token rỗng nên refresher trả false mà không cần gọi mạng.
+      final container = ProviderContainer(
+        overrides: [
+          tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
+          cacheStoreProvider.overrideWithValue(InMemoryCacheStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final client = container.read(apiClientProvider);
+
+      expect(await client.tokenRefresher!(), isFalse);
+    });
+
+    test('repository và ApiClient dùng CHUNG một bộ làm mới (single-flight)',
+        () {
+      final container = ProviderContainer(
+        overrides: [
+          tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
+          cacheStoreProvider.overrideWithValue(InMemoryCacheStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        identical(
+          container.read(sessionRefresherProvider),
+          container.read(sessionRefresherProvider),
+        ),
+        isTrue,
+      );
+      // Tạo repository không được ném (kiểm tra đồ thị phụ thuộc không có vòng).
+      expect(() => container.read(authRepositoryProvider), returnsNormally);
     });
   });
 

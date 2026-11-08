@@ -15,3 +15,9 @@ pytest>=8.0             # có sẵn — chạy test
 #   confusion, chữ ký cắt ngắn). Bản tự viết tay phải tự nhớ làm hết những thứ
 #   đó — bỏ sót một chỗ là lỗ hổng.
 PyJWT>=2.8              # ký/kiểm tra JWT HS256 — XEM app/jwt_tokens.py
+
+# ✅ ĐÃ ĐƯỢC DUYỆT (13/10/2026) — Day 28: MCP server expose search_drug + check_interaction.
+#   `mcp[cli]` = SDK chính thức MCP (server + client + CLI inspector).
+#   `httpx-sse` = SSE transport cho MCP client (dùng khi chọn SSE thay stdio).
+mcp[cli]>=1.0
+httpx-sse>=0.4

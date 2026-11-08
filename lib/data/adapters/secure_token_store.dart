@@ -26,6 +26,7 @@ class SecureTokenStore implements TokenStore {
   /// AndroidOptions dùng `encryptedSharedPreferences: true` nên khoá được mã
   /// hoá bằng keystore phần cứng, không phải AES tự quản lý trong prefs.
   static const String tokenKey = 'medassist.auth_token';
+  static const String refreshKey = 'medassist.refresh_token';
 
   /// `false` trên web — nơi cần adapter khác (in-memory) hoặc chỉ đăng nhập.
   static bool get isSecurelyAvailable => !kIsWeb;
@@ -57,5 +58,31 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-  Future<void> clear() => write(null);
+  Future<String?> readRefresh() async {
+    try {
+      final value = await _storage.read(key: refreshKey);
+      return (value == null || value.isEmpty) ? null : value;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> writeRefresh(String? token) async {
+    try {
+      if (token == null || token.isEmpty) {
+        await _storage.delete(key: refreshKey);
+      } else {
+        await _storage.write(key: refreshKey, value: token);
+      }
+    } catch (_) {
+      // Như write(): không để lỗi kho bí mật làm sập luồng đăng nhập.
+    }
+  }
+
+  @override
+  Future<void> clear() async {
+    await write(null);
+    await writeRefresh(null);
+  }
 }

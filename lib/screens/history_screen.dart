@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:image_processing_app/core/network/api_exception.dart';
 import 'package:image_processing_app/core/providers.dart';
+import 'package:image_processing_app/core/theme/app_theme.dart';
 import 'package:image_processing_app/data/models/history_item.dart';
 import 'package:image_processing_app/data/models/medicine.dart';
 import 'package:image_processing_app/l10n/generated/app_localizations.dart';
 import 'package:image_processing_app/widgets/medical_disclaimer.dart';
+import 'package:image_processing_app/widgets/neu.dart';
 import 'package:image_processing_app/widgets/offline_banner.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -32,39 +34,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final isStale = snapshot?.isStale ?? false;
     final cachedAt = snapshot?.cachedAt;
     final l10n = AppLocalizations.of(context);
+    final neu = NeuTheme.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.deepPurple, Colors.purpleAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          title: Text(
-            l10n.historyTitle,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  blurRadius: 5,
-                  color: Colors.black26,
-                  offset: Offset(2, 2),
-                ),
-              ],
-            ),
-          ),
-          centerTitle: true,
-          elevation: 5,
-        ),
-      ),
+      backgroundColor: neu.background,
+      appBar: AppBar(title: Text(l10n.historyTitle)),
       body: history.isLoading
           ? const Center(child: CircularProgressIndicator())
           : history.hasError
@@ -74,14 +49,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Icon(Icons.error_outline,
+                            size: 40, color: scheme.error),
+                        const SizedBox(height: 8),
                         Text(
                           history.error is AppException
                               ? (history.error! as AppException).message
                               : l10n.historyLoadFailed,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
+                          style: TextStyle(color: scheme.error),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => ref
                               .read(historyControllerProvider.notifier)
@@ -94,11 +72,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 )
               : items.isEmpty
                   ? Center(
-                      child: Text(
-                        l10n.historyEmpty,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.history,
+                                size: 48,
+                                color: neu.textMuted.withOpacity(0.6)),
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.historyEmpty,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(color: neu.textMuted),
+                            ),
+                          ],
                         ),
                       ),
                     )
@@ -106,7 +97,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       onRefresh: () =>
                           ref.read(historyControllerProvider.notifier).load(),
                       child: ListView(
-                        padding: const EdgeInsets.all(16.0),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                         children: [
                           // Banner ngoại tuyến: dữ liệu là bản cache (Day 12).
                           if (isStale)
@@ -116,7 +108,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   .read(historyControllerProvider.notifier)
                                   .load(),
                             ),
-                          for (final item in items) _HistoryCard(item: item),
+                          for (final item in items)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: _HistoryCard(item: item),
+                            ),
                           // Bắt buộc: màn lịch sử cũng là màn ra kết quả.
                           const SizedBox(height: 12),
                           const MedicalDisclaimer(),
@@ -137,61 +133,53 @@ class _HistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${l10n.historyFile} ${item.filepath}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+    final neu = NeuTheme.of(context);
+    final theme = Theme.of(context);
+    return NeuCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${l10n.historyFile} ${item.filepath}',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: neu.textStrong,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDelete(context, ref),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.searchResultsLabel,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
               ),
-            ),
-            if (item.searchResults.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  l10n.noResults,
-                  style: const TextStyle(color: Colors.black54),
-                ),
-              )
-            else
-              ...item.searchResults
-                  .map((medicine) => _medicineBlock(medicine, l10n)),
-          ],
-        ),
+              IconButton(
+                tooltip: l10n.delete,
+                icon: Icon(Icons.delete, color: theme.colorScheme.error),
+                onPressed: () => _confirmDelete(context, ref),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.searchResultsLabel,
+            style: theme.textTheme.labelLarge?.copyWith(color: neu.accent),
+          ),
+          if (item.searchResults.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Text(
+                l10n.noResults,
+                style: TextStyle(color: neu.textMuted),
+              ),
+            )
+          else
+            ...item.searchResults
+                .map((medicine) => _medicineBlock(context, medicine, l10n)),
+        ],
       ),
     );
   }
 
   /// Xoá là thao tác không hoàn tác được (mất luôn lịch sử quét ảnh) nên hỏi
-  /// lại trước, thay vì xoá ngay khi bấm nút đỏ.
+  /// lại trước, thay vì xoá ngay khi bấm nút xoá.
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final id = item.id;
@@ -217,63 +205,69 @@ class _HistoryCard extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final neu = NeuTheme.of(context);
     final ok = await ref.read(historyControllerProvider.notifier).delete(id);
     if (!context.mounted) return;
 
     messenger.showSnackBar(
       SnackBar(
         content: Text(ok ? l10n.deleted : l10n.deleteFailed),
-        backgroundColor: ok ? Colors.green : Colors.red,
+        backgroundColor: ok ? neu.accent : scheme.error,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  Widget _medicineBlock(Medicine medicine, AppLocalizations l10n) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 4),
-          Text(
-            '${l10n.medicineName}: ${medicine.name}',
-            style: const TextStyle(color: Colors.black54),
-          ),
-          if (medicine.composition != null)
-            Text(
-              '${l10n.composition}: ${medicine.composition}',
-              style: const TextStyle(color: Colors.black54),
+  Widget _line(BuildContext context, String label, Object value) {
+    final neu = NeuTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: TextStyle(color: neu.textMuted),
             ),
-          if (medicine.uses != null)
-            Text(
-              '${l10n.uses}: ${medicine.uses}',
-              style: const TextStyle(color: Colors.black54),
+            TextSpan(
+              text: '$value',
+              style: TextStyle(color: neu.textStrong),
             ),
-          if (medicine.sideEffects != null)
-            Text(
-              '${l10n.sideEffects}: ${medicine.sideEffects}',
-              style: const TextStyle(color: Colors.black54),
-            ),
-          if (medicine.manufacturer != null)
-            Text(
-              '${l10n.manufacturer}: ${medicine.manufacturer}',
-              style: const TextStyle(color: Colors.black54),
-            ),
-          if (medicine.excellentReviewPercent != null)
-            Text(
-              '${l10n.reviewExcellent}: ${medicine.excellentReviewPercent}',
-              style: const TextStyle(color: Colors.black54),
-            ),
-          if (medicine.averageReviewPercent != null)
-            Text(
-              '${l10n.reviewAverage}: ${medicine.averageReviewPercent}',
-              style: const TextStyle(color: Colors.black54),
-            ),
-          if (medicine.poorReviewPercent != null)
-            Text(
-              '${l10n.reviewPoor}: ${medicine.poorReviewPercent}',
-              style: const TextStyle(color: Colors.black54),
-            ),
-          const Divider(),
-        ],
-      );
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _medicineBlock(
+    BuildContext context,
+    Medicine medicine,
+    AppLocalizations l10n,
+  ) {
+    final neu = NeuTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 6),
+        _line(context, l10n.medicineName, medicine.name),
+        if (medicine.composition != null)
+          _line(context, l10n.composition, medicine.composition!),
+        if (medicine.uses != null) _line(context, l10n.uses, medicine.uses!),
+        if (medicine.sideEffects != null)
+          _line(context, l10n.sideEffects, medicine.sideEffects!),
+        if (medicine.manufacturer != null)
+          _line(context, l10n.manufacturer, medicine.manufacturer!),
+        if (medicine.excellentReviewPercent != null)
+          _line(
+              context, l10n.reviewExcellent, medicine.excellentReviewPercent!),
+        if (medicine.averageReviewPercent != null)
+          _line(context, l10n.reviewAverage, medicine.averageReviewPercent!),
+        if (medicine.poorReviewPercent != null)
+          _line(context, l10n.reviewPoor, medicine.poorReviewPercent!),
+        Divider(color: neu.textMuted.withOpacity(0.2)),
+      ],
+    );
+  }
 }

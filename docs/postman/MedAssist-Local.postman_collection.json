@@ -1,0 +1,2652 @@
+{
+  "info": {
+    "_postman_id": "5cdbf9e1-a476-5a99-a0fa-df2f26ecf8c8",
+    "name": "MedAssist Core (local)",
+    "description": "Bộ request đầy đủ cho backend MedAssist chạy trên máy: http://127.0.0.1:8000.\n\n**Chỉ dùng dữ liệu GIẢ.**\n\nCách dùng: Import file này + file environment. Chọn environment \"MedAssist Local\". Chạy theo thứ tự từng thư mục (1 → 9): Đăng nhập tự lưu token vào biến collection. Để chạy cả bộ: nút Run collection (thư mục 7 dùng file search-terms.json làm Data). Thư mục 9 xoá tài khoản — để cuối cùng.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "username",
+      "value": "demo"
+    },
+    {
+      "key": "email",
+      "value": "demo@example.com"
+    },
+    {
+      "key": "password",
+      "value": "Demo@12345678"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": "demo-session-0001"
+    },
+    {
+      "key": "historyId",
+      "value": "1"
+    },
+    {
+      "key": "term",
+      "value": "Panadol"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health",
+      "item": [
+        {
+          "name": "Kiểm tra server",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "health"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"ok\",\n  \"service\": \"medassist-core\",\n  \"version\": \"0.1.0\",\n  \"time\": \"2026-10-30T12:26:49.993885Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Tài khoản",
+      "item": [
+        {
+          "name": "Đăng ký",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 201\", function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"accessToken\", j.token.access_token);",
+                  "pm.collectionVariables.set(\"refreshToken\", j.token.refresh_token);",
+                  "pm.test(\"Có access_token + refresh_token\", function () {",
+                  "  pm.expect(j.token.access_token).to.be.a(\"string\");",
+                  "  pm.expect(j.token.refresh_token).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Trả 409 nếu tên đã tồn tại — khi đó dùng 'Đăng nhập'. Tên đăng nhập ≥ 3 ký tự, mật khẩu ≥ 6 ký tự.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "Trả 409 nếu tên đã tồn tại — khi đó dùng 'Đăng nhập'. Tên đăng nhập ≥ 3 ký tự, mật khẩu ≥ 6 ký tự.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{email}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": 9,\n    \"username\": \"demo\",\n    \"email\": \"demo@example.com\",\n    \"created_at\": \"2026-10-30T12:26:50.234388Z\"\n  },\n  \"token\": {\n    \"access_token\": \"<đã che>\",\n    \"token_type\": \"bearer\",\n    \"expires_in\": 900,\n    \"refresh_token\": \"<đã che>\",\n    \"refresh_expires_in\": 604800\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Đăng nhập",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"accessToken\", j.token.access_token);",
+                  "pm.collectionVariables.set(\"refreshToken\", j.token.refresh_token);",
+                  "pm.test(\"Có access_token + refresh_token\", function () {",
+                  "  pm.expect(j.token.access_token).to.be.a(\"string\");",
+                  "  pm.expect(j.token.refresh_token).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Ô đăng nhập dùng TÊN ĐĂNG NHẬP, không dùng email. Token được tự lưu vào biến collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Ô đăng nhập dùng TÊN ĐĂNG NHẬP, không dùng email. Token được tự lưu vào biến collection.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": 9,\n    \"username\": \"demo\",\n    \"email\": \"demo@example.com\",\n    \"created_at\": \"2026-10-30T12:26:50.234388Z\"\n  },\n  \"token\": {\n    \"access_token\": \"<đã che>\",\n    \"token_type\": \"bearer\",\n    \"expires_in\": 900,\n    \"refresh_token\": \"<đã che>\",\n    \"refresh_expires_in\": 604800\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Kiểm tra độ mạnh mật khẩu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/validate-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "validate-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/validate-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "validate-password"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"ok\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Thông tin tài khoản (me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 9,\n  \"username\": \"demo\",\n  \"email\": \"demo@example.com\",\n  \"created_at\": \"2026-10-30T12:26:50.234388Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Đổi refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"accessToken\", j.token.access_token);",
+                  "pm.collectionVariables.set(\"refreshToken\", j.token.refresh_token);",
+                  "pm.test(\"Có access_token + refresh_token\", function () {",
+                  "  pm.expect(j.token.access_token).to.be.a(\"string\");",
+                  "  pm.expect(j.token.refresh_token).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Refresh token dùng một lần (xoay vòng). Dùng lại token cũ sẽ thu hồi cả phiên.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "refresh"
+                  ]
+                },
+                "description": "Refresh token dùng một lần (xoay vòng). Dùng lại token cũ sẽ thu hồi cả phiên.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": 9,\n    \"username\": \"demo\",\n    \"email\": \"demo@example.com\",\n    \"created_at\": \"2026-10-30T12:26:50.234388Z\"\n  },\n  \"token\": {\n    \"access_token\": \"<đã che>\",\n    \"token_type\": \"bearer\",\n    \"expires_in\": 900,\n    \"refresh_token\": \"<đã che>\",\n    \"refresh_expires_in\": 604800\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Thuốc",
+      "item": [
+        {
+          "name": "Tìm thuốc theo tên",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Có results + total\", function () { pm.expect(j).to.have.property(\"results\"); pm.expect(j).to.have.property(\"total\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?name=Panadol&limit=10&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Panadol"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/search?name=Panadol&limit=10&offset=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "Panadol"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"results\": [\n    {\n      \"name\": \"Panadol 500mg\",\n      \"composition\": \"Paracetamol 500mg\",\n      \"uses\": \"Pain relief, fever reduction\",\n      \"side_effects\": \"Nausea, allergic reactions\",\n      \"manufacturer\": \"GSK\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"dev-sample: medicines.dev.csv\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 500mg\"\n      ],\n      \"updated_at\": \"2026-10-28T06:16:43.005144Z\",\n      \"source_url\": null,\n      \"retrieved_at\": null,\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol\",\n      \"composition\": \"Paracetamol 500mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Sterling Drug (Malaya) Sdn. Bhd.\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 500mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.230725Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol\",\n      \"composition\": \"Paracetamol 500mg 500mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Công ty Cổ phần Dược phẩm Sanofi-Synthelabo Việt Nam\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 500mg 500mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.375076Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol Children Soluble (Panadol trẻ em viên sủi)\",\n      \"composition\": \"Paracetamol 250mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"GlaxoSmithKline Australia Pty., Ltd.\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 250mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.339073Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol Cảm cúm\",\n      \"composition\": \"Paracetamol 500mg; Cafein 25mg; Phenylephrin hydroclorid 5mg 500mg, 25mg, 5mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Công ty Cổ phần Dược phẩm Sanofi-Synthelabo Việt Nam\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 500mg\",\n        \"cafein 25mg\",\n        \"phenylephrin hydroclorid 5mg 500mg\",\n        \"25mg\",\n        \"5mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.375076Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol Extra\",\n      \"composition\": \"Paracetamol, Caffeine Paracetamol 500mg; Caffeine 65mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Sterling Drug (Malaya) SDN. BHD. (Cơ sở sản xuất cốm: Haleon Ireland Dungarvan Limited (Địa chỉ: Knockbrack, Lisfennel, Dungarvan, Co. Waterford, X35 RY76, Ireland))\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol\",\n        \"caffeine paracetamol 500mg\",\n        \"caffeine 65mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.193271Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol Extra Effervescent\",\n      \"composition\": \"Paracetamol; Ceffein 500mg/65mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Famar S.A (Plant B)\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol\",\n        \"ceffein 500mg/65mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.339073Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol Extra with Optizorb (cơ sở đóng gói và xuất xưởng: Sterling Drug (Malaya) Sdn. Bhd.; Địa chỉ: Lot 89, Jalan Enggang, Ampang/Hulu Kelang Industrial Estate, 68000 Ampang, Selangor, Malaysia)\",\n      \"composition\": \"Paracetamol 500 mg, Cafein 65 mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Haleon Ireland Dungarvan Limited\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 500 mg\",\n        \"cafein 65 mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.268437Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Panadol Viên Sủi\",\n      \"composition\": \"Paracetamol Paracetamol 500mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Haleon Ireland Dungarvan Limited\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent"
+            }
+          ]
+        },
+        {
+          "name": "Tìm thuốc — phân trang",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Tối đa 2 kết quả\", function () { pm.expect(pm.response.json().results.length).to.be.at.most(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?name=Paracetamol&limit=2&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Paracetamol"
+                },
+                {
+                  "key": "limit",
+                  "value": "2"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "limit tối đa 100. Dùng offset để lấy trang kế tiếp.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/search?name=Paracetamol&limit=2&offset=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "Paracetamol"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "2"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "description": "limit tối đa 100. Dùng offset để lấy trang kế tiếp.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"results\": [\n    {\n      \"name\": \"Decolgen\",\n      \"composition\": \"Paracetamol, Phenylephrine, Chlorpheniramine\",\n      \"uses\": \"Điều trị cảm cúm\",\n      \"side_effects\": \"Buồn ngủ\",\n      \"manufacturer\": \"OPC\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"dev-sample: medicines.dev.csv\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol\",\n        \"phenylephrine\",\n        \"chlorpheniramine\"\n      ],\n      \"updated_at\": \"2026-10-28T06:16:43.005144Z\",\n      \"source_url\": null,\n      \"retrieved_at\": null,\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"Hapacol 500\",\n      \"composition\": \"Paracetamol 500mg, Vitamin C\",\n      \"uses\": \"Fever and pain relief\",\n      \"side_effects\": \"Stomach irritation\",\n      \"manufacturer\": \"Domesco\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"dev-sample: medicines.dev.csv\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"paracetamol 500mg\",\n        \"vitamin c\"\n      ],\n      \"updated_at\": \"2026-10-28T06:16:43.005144Z\",\n      \"source_url\": null,\n      \"retrieved_at\": null,\n      \"license\": null,\n      \"reviewed_by\": null\n    }\n  ],\n  \"query\": \"Paracetamol\",\n  \"total\": 2002\n}"
+            }
+          ]
+        },
+        {
+          "name": "Tìm thuốc — không có kết quả",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Không có kết quả\", function () { pm.expect(pm.response.json().total).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?name=xyzkhongtontai",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "xyzkhongtontai"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/search?name=xyzkhongtontai",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "xyzkhongtontai"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"results\": [],\n  \"query\": \"xyzkhongtontai\",\n  \"total\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "Danh mục thuốc (cho OCR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/medicines?limit=50&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "medicines"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/medicines?limit=50&offset=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "medicines"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"results\": [\n    {\n      \"name\": \"\\\"U-Chu\\\" Loratadine Tablet 10mg\",\n      \"composition\": \"Loratadine 10mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"U Chu Pharmaceutical Co., Ltd.\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"loratadine 10mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.315719Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"(18)F-FDG (FDG)\",\n      \"composition\": \"(18)F-FDG 5,5- 125mCi/ml\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Công ty Cổ phần Y học Rạng Đông - Trung tâm Gia tốc Vietsing Hà Nội\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"(18)f-fdg 5\",\n        \"5- 125mci/ml\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.365069Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"0.9% Sodium Chloride Intravenous Infusion B.P.\",\n      \"composition\": \"Sodium chloride 0,9g/100ml\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"B. Braun Medical Industries Sdn. Bhd.\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"sodium chloride 0\",\n        \"9g/100ml\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.317715Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"0.9% Sodium Chloride Solution for I.V. Infusion\",\n      \"composition\": \"Sodium chloride 9g/1000ml\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Euro-Med Laboratoires Phil., Inc\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"sodium chloride 9g/1000ml\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.311693Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"02 Tablet\",\n      \"composition\": \"Ofloxacin, ornidazol 200mg;500mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Medley Pharmaceuticals Ltd.\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"ofloxacin\",\n        \"ornidazol 200mg\",\n        \"500mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.363067Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"1-AL\",\n      \"composition\": \"Mỗi chai 20ml chứa: Vitamin A tổng hợp 50000UI; Ergocalciferol (Vitamin D2) 10000UI;\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"FDC Limited\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"moi chai 20ml chua: vitamin a tong hop 50000ui\",\n        \"ergocalciferol (vitamin d2) 10000ui\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.300425Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"1-AL\",\n      \"composition\": \"Levocetirizine (dưới dạng Levocetirizine dihydrochloride) 5mg\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"FDC Limited\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"levocetirizine (duoi dang levocetirizine dihydrochloride) 5mg\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.303426Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"10% Dextrose in Water Parenteral Solution for Intravenous Infusion\",\n      \"composition\": \"Dextrose monohydrate 50g/500ml\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Euro-Med Laboratoires Phil., Inc\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"dextrose monohydrate 50g/500ml\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.311693Z\",\n      \"source_url\": null,\n      \"retrieved_at\": \"2026-10-30\",\n      \"license\": null,\n      \"reviewed_by\": null\n    },\n    {\n      \"name\": \"10% Fat Emulsion Injection\",\n      \"composition\": \"Soybean oil 10% 0,1\",\n      \"uses\": null,\n      \"side_effects\": null,\n      \"manufacturer\": \"Guangdong Otsuka Pharmaceutical Co., Ltd.\",\n      \"excellent_review_percent\": null,\n      \"average_review_percent\": null,\n      \"poor_review_percent\": null,\n      \"source\": \"Cục Quản lý Dược – Công bố thuốc (DAV)\",\n      \"is_authoritative\": false,\n      \"ingredients\": [\n        \"soybean oil 10% 0\",\n        \"1\"\n      ],\n      \"updated_at\": \"2026-10-30T11:01:58.283805Z\",\n      \"source_url\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Lịch sử & ảnh",
+      "item": [
+        {
+          "name": "Ghi một bản ghi lịch sử",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 201\", function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "history"
+              ]
+            },
+            "description": "filepath chỉ là tên giả; không dùng đường dẫn ảnh thật.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filepath\": \"demo-fake-image.jpg\",\n  \"medicines\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "history"
+                  ]
+                },
+                "description": "filepath chỉ là tên giả; không dùng đường dẫn ảnh thật.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filepath\": \"demo-fake-image.jpg\",\n  \"medicines\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"history\": [\n    {\n      \"id\": 7,\n      \"filepath\": \"demo-fake-image.jpg\",\n      \"search_results\": [],\n      \"created_at\": \"2026-10-30T12:26:50.898221Z\"\n    }\n  ],\n  \"total\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Danh sách lịch sử",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const h = pm.response.json().history || [];",
+                  "if (h.length) { pm.collectionVariables.set(\"historyId\", h[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/history?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Lưu id bản ghi đầu tiên vào biến historyId để request 'Xoá' dùng."
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/history?limit=20&offset=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "description": "Lưu id bản ghi đầu tiên vào biến historyId để request 'Xoá' dùng."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"history\": [\n    {\n      \"id\": 7,\n      \"filepath\": \"demo-fake-image.jpg\",\n      \"search_results\": [],\n      \"created_at\": \"2026-10-30T12:26:50.898221Z\"\n    }\n  ],\n  \"total\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Xoá một bản ghi lịch sử",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/history/{{historyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "history",
+                "{{historyId}}"
+              ]
+            },
+            "description": "Chạy 'Danh sách lịch sử' trước để có historyId. Trả 404 nếu không phải của bạn."
+          }
+        },
+        {
+          "name": "Nhận diện từ ảnh (giữ chỗ — trả 501)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 501\", function () { pm.response.to.have.status(501); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "analyze"
+              ]
+            },
+            "description": "Cố ý trả 501: server không nhận ảnh người dùng. OCR chạy trên điện thoại (ML Kit)."
+          },
+          "response": [
+            {
+              "name": "501 Not Implemented — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/analyze",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "analyze"
+                  ]
+                },
+                "description": "Cố ý trả 501: server không nhận ảnh người dùng. OCR chạy trên điện thoại (ML Kit)."
+              },
+              "status": "Not Implemented",
+              "code": 501,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"not_implemented\",\n  \"message\": \"Nhận diện ảnh chưa được bật. Hãy dùng tìm kiếm theo tên.\",\n  \"detail\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Trợ lý AI",
+      "item": [
+        {
+          "name": "Hỏi đáp — tác dụng phụ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Có trường answered + disclaimer\", function () { pm.expect(j).to.have.property(\"answered\"); pm.expect(j.disclaimer).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/ask",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "ask"
+              ]
+            },
+            "description": "Với dữ liệu mẫu: hỏi công dụng/tác dụng phụ → trả lời kèm trích dẫn [R1]; mỗi trích dẫn có source.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Panadol có tác dụng phụ gì\",\n  \"top_k\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/ask",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "ask"
+                  ]
+                },
+                "description": "Với dữ liệu mẫu: hỏi công dụng/tác dụng phụ → trả lời kèm trích dẫn [R1]; mỗi trích dẫn có source.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"Panadol có tác dụng phụ gì\",\n  \"top_k\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"answered\": true,\n  \"text\": \"- Nausea, allergic reactions [R1]\",\n  \"refusal_reason\": null,\n  \"citations\": [\n    {\n      \"id\": \"R1\",\n      \"medicine_name\": \"Panadol 500mg\",\n      \"field\": \"side_effects\",\n      \"excerpt\": \"Nausea, allergic reactions\",\n      \"source\": \"dev-sample: medicines.dev.csv\",\n      \"is_authoritative\": false,\n      \"score\": 0.4953,\n      \"source_url\": \"\",\n      \"retrieved_at\": \"\",\n      \"license\": \"\",\n      \"reviewed_by\": \"\"\n    }\n  ],\n  \"disclaimer\": \"⚠️ Nguồn hiện tại là DỮ LIỆU MẪU dùng để phát triển, chưa được kiểm chứng lâm sàng — không dùng để tự chẩn đoán hay điều chỉnh liều thuốc. Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của dược sĩ hoặc bác sĩ. Nếu có triệu chứng nặng hoặc bất thường, hãy đi khám bác sĩ.\",\n  \"provider\": \"mock\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Hỏi đáp — liều dùng (bị từ chối)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Bị từ chối: out_of_scope\", function () { pm.expect(j.answered).to.eql(false); pm.expect(j.refusal_reason).to.eql(\"out_of_scope\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/ask",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "ask"
+              ]
+            },
+            "description": "Thiết kế an toàn: không tư vấn liều dùng, chẩn đoán, tương tác.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"liều dùng Panadol cho trẻ em\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/ask",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "ask"
+                  ]
+                },
+                "description": "Thiết kế an toàn: không tư vấn liều dùng, chẩn đoán, tương tác.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"liều dùng Panadol cho trẻ em\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"answered\": false,\n  \"text\": null,\n  \"refusal_reason\": \"out_of_scope\",\n  \"citations\": [],\n  \"disclaimer\": \"Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của dược sĩ hoặc bác sĩ. Nếu có triệu chứng nặng hoặc bất thường, hãy đi khám bác sĩ.\",\n  \"provider\": \"mock\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Chat (SSE streaming)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Có sự kiện done\", function () { pm.expect(pm.response.text()).to.include(\"event: done\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "chat"
+              ]
+            },
+            "description": "Phản hồi là luồng SSE: tool_call · citation · token · done. Xem dần ở tab Response.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Panadol có công dụng gì\",\n  \"session_id\": \"{{sessionId}}\",\n  \"current_medications\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/chat",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "chat"
+                  ]
+                },
+                "description": "Phản hồi là luồng SSE: tool_call · citation · token · done. Xem dần ở tab Response.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Panadol có công dụng gì\",\n  \"session_id\": \"{{sessionId}}\",\n  \"current_medications\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/event-stream"
+                }
+              ],
+              "cookie": [],
+              "body": "event: tool_call\ndata: {\"name\": \"explain_for_patient\", \"arguments\": \"\"}\n\nevent: citation\ndata: {\"documentId\": \"R1\", \"quote\": \"Pain relief, fever reduction\", \"title\": \"Panadol 500mg\", \"source\": \"dev-sample: medicines.dev.csv\", \"isAuthoritative\": false, \"sourceUrl\": \"\", \"retrievedAt\": \"\", \"license\": \"\", \"reviewedBy\": \"\"}\n\nevent: token\ndata: {\"text\": \"- Panadol 500mg (công dụng): Pain relief, fever reduction [R1]\"}\n\nevent: done\ndata: {\"sessionId\": \"pmgen-session-6e1067\", \"mode\": \"extractive\"}\n\n"
+            }
+          ]
+        },
+        {
+          "name": "Chat — triệu chứng sau khi uống thuốc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Có đối chiếu tác dụng phụ\", function () { pm.expect(pm.response.text()).to.include(\"event: done\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "chat"
+              ]
+            },
+            "description": "Đối chiếu triệu chứng với tác dụng phụ đã nạp, có trích dẫn; luôn nói rõ KHÔNG khẳng định thuốc là nguyên nhân.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Uống Panadol 500mg bị buồn nôn có sao không\",\n  \"session_id\": \"{{sessionId}}\",\n  \"current_medications\": [\n    \"Panadol\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/chat",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "chat"
+                  ]
+                },
+                "description": "Đối chiếu triệu chứng với tác dụng phụ đã nạp, có trích dẫn; luôn nói rõ KHÔNG khẳng định thuốc là nguyên nhân.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Uống Panadol 500mg bị buồn nôn có sao không\",\n  \"session_id\": \"{{sessionId}}\",\n  \"current_medications\": [\n    \"Panadol\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/event-stream"
+                }
+              ],
+              "cookie": [],
+              "body": "event: symptom_noted\ndata: {\"terms\": [\"buồn nôn\"], \"recurring\": false}\n\nevent: tool_call\ndata: {\"name\": \"side_effect_check\", \"arguments\": \"(1 thuốc)\"}\n\nevent: citation\ndata: {\"documentId\": \"R1\", \"quote\": \"Nausea, allergic reactions\", \"title\": \"Panadol 500mg\", \"source\": \"dev-sample: medicines.dev.csv\", \"isAuthoritative\": false, \"sourceUrl\": \"\", \"retrievedAt\": \"\", \"license\": \"\", \"reviewedBy\": \"\"}\n\nevent: token\ndata: {\"text\": \"Triệu chứng 'buồn nôn' có được ghi nhận trong tác dụng phụ của Panadol 500mg \"}\n\nevent: token\ndata: {\"text\": \"[R1].\\n\\nĐiều này KHÔNG khẳng định thuốc là nguyên nhân — triệu chứng có thể do \"}\n\nevent: token\ndata: {\"text\": \"nhiều lý do khác. Chỉ bác sĩ hoặc dược sĩ mới đánh giá được.\\n\\nBước tiếp theo an \"}\n\nevent: token\ndata: {\"text\": \"toàn:\\n- Không tự ý ngưng thuốc kê đơn; hãy liên hệ bác sĩ hoặc dược sĩ để được \"}\n\nevent: token\ndata: {\"text\": \"tư vấn.\\n- Ghi lại thời điểm uống thuốc và lúc triệu chứng xuất hiện để báo cho \"}\n\nevent: token\ndata: {\"text\": \"bác sĩ.\\n- Đi khám ngay hoặc gọi 115 nếu có: khó thở, sưng mặt/môi/lưỡi, nổi mề \"}\n\nevent: token\ndata: {\"text\": \"đay toàn thân, đau ngực, ngất, co giật, nôn/đi ngoài ra máu.\"}\n\nevent: done\ndata: {\"sessionId\": \"pmgen-session-6e1067\", \"mode\": \"extractive\"}\n\n"
+            }
+          ]
+        },
+        {
+          "name": "Chat — dấu hiệu khẩn cấp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Có sự kiện emergency\", function () { pm.expect(pm.response.text()).to.include(\"event: emergency\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "chat"
+              ]
+            },
+            "description": "Dấu hiệu cấp cứu được xử lý TRƯỚC mọi bước khác, không gọi AI: khuyên gọi 115 + cơ sở y tế gần nhất.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"tôi bị khó thở và đau ngực\",\n  \"session_id\": \"{{sessionId}}\",\n  \"current_medications\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/chat",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "chat"
+                  ]
+                },
+                "description": "Dấu hiệu cấp cứu được xử lý TRƯỚC mọi bước khác, không gọi AI: khuyên gọi 115 + cơ sở y tế gần nhất.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"tôi bị khó thở và đau ngực\",\n  \"session_id\": \"{{sessionId}}\",\n  \"current_medications\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/event-stream"
+                }
+              ],
+              "cookie": [],
+              "body": "event: emergency\ndata: {\"matched\": [\"khó thở\", \"đau ngực\", \"thở khó\"], \"message\": \"Các dấu hiệu bạn mô tả có thể là tình trạng khẩn cấp. Hãy gọi 115 hoặc đến cơ sở y tế gần nhất ngay. Không chờ tư vấn qua ứng dụng.\"}\n\nevent: token\ndata: {\"text\": \"⚠️ Có thể là tình trạng khẩn cấp: hãy gọi 115 hoặc đến cơ sở y tế gần nhất ngay. Nếu có người bên cạnh, hãy nhờ họ hỗ trợ và mang theo các thuốc bạn đang dùng.\"}\n\nevent: done\ndata: {\"sessionId\": \"pmgen-session-6e1067\", \"mode\": \"extractive\"}\n\n"
+            }
+          ]
+        },
+        {
+          "name": "Gợi ý lối sống",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Có tips + disclaimer\", function () { pm.expect(j.tips).to.be.an(\"array\"); pm.expect(j.disclaimer).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/lifestyle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "lifestyle"
+              ]
+            },
+            "description": "Tối đa 5 gợi ý. Gợi ý theo thuốc/bệnh nền kèm trích dẫn nguồn. Server không lưu, không log request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_medications\": [\n    \"Panadol\"\n  ],\n  \"conditions\": [\n    \"tăng huyết áp\"\n  ],\n  \"recent_topics\": [],\n  \"cloud_ai_consent\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/lifestyle",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "lifestyle"
+                  ]
+                },
+                "description": "Tối đa 5 gợi ý. Gợi ý theo thuốc/bệnh nền kèm trích dẫn nguồn. Server không lưu, không log request.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"current_medications\": [\n    \"Panadol\"\n  ],\n  \"conditions\": [\n    \"tăng huyết áp\"\n  ],\n  \"recent_topics\": [],\n  \"cloud_ai_consent\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"tips\": [\n    {\n      \"title\": \"Lưu ý khi dùng Panadol 500mg\",\n      \"body\": \"Tài liệu đã nạp ghi nhận tác dụng phụ có thể gặp của Panadol 500mg: Nausea, allergic reactions [R1]. Nếu gặp và kéo dài, hãy hỏi dược sĩ hoặc bác sĩ.\",\n      \"kind\": \"medication\",\n      \"citations\": [\n        {\n          \"id\": \"R1\",\n          \"medicine_name\": \"Panadol 500mg\",\n          \"source\": \"dev-sample: medicines.dev.csv\",\n          \"excerpt\": \"Nausea, allergic reactions\",\n          \"is_authoritative\": false,\n          \"source_url\": \"\",\n          \"retrieved_at\": \"\",\n          \"license\": \"\",\n          \"reviewed_by\": \"\"\n        }\n      ]\n    },\n    {\n      \"title\": \"Chế độ ăn khi tăng huyết áp\",\n      \"body\": \"Nên hạn chế ăn mặn và các món chế biến sẵn nhiều muối, hạn chế rượu bia. Hãy hỏi bác sĩ/chuyên gia dinh dưỡng về chế độ phù hợp với bạn.\",\n      \"kind\": \"diet\",\n      \"citations\": [\n        {\n          \"id\": \"D1\",\n          \"medicine_name\": \"tăng huyết áp\",\n          \"source\": \"dev-sample: diet_guidance.dev.csv (chưa kiểm chứng — thay bằng tài liệu chính thống)\",\n          \"excerpt\": \"Nên hạn chế ăn mặn và các món chế biến sẵn nhiều muối, hạn chế rượu bia.\",\n          \"is_authoritative\": false,\n          \"source_url\": \"\",\n          \"retrieved_at\": \"\",\n          \"license\": \"\",\n          \"reviewed_by\": \"\"\n        }\n      ]\n    },\n    {\n      \"title\": \"Uống thuốc đúng giờ\",\n      \"body\": \"Uống thuốc theo đúng lịch đã được hướng dẫn; đặt nhắc nhở trong ứng dụng giúp bạn không quên liều.\",\n      \"kind\": \"general\",\n      \"citations\": []\n    },\n    {\n      \"title\": \"Ngủ đủ giấc\",\n      \"body\": \"Cố gắng đi ngủ và thức dậy vào giờ cố định, hạn chế màn hình trước khi ngủ.\",\n      \"kind\": \"general\",\n      \"citations\": []\n    },\n    {\n      \"title\": \"Uống đủ nước\",\n      \"body\": \"Chia nhỏ lượng nước uống trong ngày; nếu bác sĩ có dặn hạn chế nước, hãy làm theo hướng dẫn đó. Với bệnh nền, hãy hỏi bác sĩ điều chỉnh cho phù hợp.\",\n      \"kind\": \"general\",\n      \"citations\": []\n    }\n  ],\n  \"disclaimer\": \"Gợi ý chỉ mang tính tham khảo, không thay thế tư vấn của bác sĩ hoặc dược sĩ. Không tự ý thay đổi hay ngưng thuốc đã được kê đơn.\",\n  \"generated_by\": \"rules\",\n  \"unmatched_conditions\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Số liệu sử dụng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "usage"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/usage",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "usage"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"requests\": 3,\n  \"prompt_chars\": 92,\n  \"output_chars\": 753,\n  \"cost_usd\": 0.0,\n  \"by_route\": {\n    \"/v1/agent/chat\": 3\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Xoá phiên hội thoại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/session/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "session",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Chạy 'Chat' trước để phiên tồn tại (không thì 404)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Tình huống lỗi",
+      "item": [
+        {
+          "name": "Đăng nhập sai mật khẩu → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"sai-mat-khau-xyz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"sai-mat-khau-xyz\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Sai tên đăng nhập hoặc mật khẩu.\",\n  \"detail\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Đăng ký trùng tên → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "409 Conflict — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{email}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"conflict\",\n  \"message\": \"Tên đăng nhập đã tồn tại.\",\n  \"detail\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mật khẩu quá yếu → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 422\", function () { pm.response.to.have.status(422); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/validate-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "validate-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"abc\",\n  \"password\": \"abc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "422 Unprocessable Entity — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/validate-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "validate-password"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"abc\",\n  \"password\": \"abc\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"validation_error\",\n  \"message\": \"Mật khẩu chưa đủ mạnh.\",\n  \"detail\": {\n    \"long_enough\": false,\n    \"has_digit\": false,\n    \"has_letter\": true\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Không có token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Thiếu token xác thực.\",\n  \"detail\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Hỏi đáp không có token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/agent/ask",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "agent",
+                "ask"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Panadol là gì\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/agent/ask",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "agent",
+                    "ask"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"Panadol là gì\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Thiếu token xác thực.\",\n  \"detail\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Tìm thuốc thiếu tham số name → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 422\", function () { pm.response.to.have.status(422); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "422 Unprocessable Entity — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/search",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "search"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"validation_error\",\n  \"message\": \"Dữ liệu gửi lên không hợp lệ.\",\n  \"detail\": [\n    {\n      \"loc\": [\n        \"query\",\n        \"name\"\n      ],\n      \"msg\": \"Field required\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Xoá lịch sử không tồn tại → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 404\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/history/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "history",
+                "999999"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "404 Not Found — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/history/999999",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "history",
+                    "999999"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"not_found\",\n  \"message\": \"Không tìm thấy bản ghi.\",\n  \"detail\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Chạy hàng loạt (Runner)",
+      "item": [
+        {
+          "name": "Tìm thuốc theo {{term}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const min = pm.iterationData.get(\"expect_min\");",
+                  "if (min !== undefined && min !== null) {",
+                  "  pm.test(\"Ít nhất \" + min + \" kết quả cho \\\"\" + pm.variables.get(\"term\") + \"\\\"\", function () {",
+                  "    pm.expect(pm.response.json().results.length).to.be.at.least(Number(min));",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?name={{term}}&limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "{{term}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Dùng với Collection Runner: chọn file search-terms.json làm Data. Chạy lẻ thì dùng biến term.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Tin tức",
+      "item": [
+        {
+          "name": "Tin tức thuốc & y tế",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Có articles + is_sample\", function () { pm.expect(j.articles).to.be.an(\"array\"); pm.expect(j).to.have.property(\"is_sample\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "news"
+              ]
+            },
+            "description": "Server chạy -News: tin thật FDA Recalls (is_sample=false, link https fda.gov). Không -News: bài mẫu, không gọi mạng.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — ví dụ (dữ liệu giả, token đã che)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/news",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "news"
+                  ]
+                },
+                "description": "Server chạy -News: tin thật FDA Recalls (is_sample=false, link https fda.gov). Không -News: bài mẫu, không gọi mạng.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"articles\": [\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/slr-food-distribution-inc-recalls-wise-wife-brand-ground-cinnamon-due-elevated-lead-levels\",\n      \"title\": \"SLR Food Distribution Inc. Recalls Wise Wife Brand Ground Cinnamon Due to Elevated Lead Levels\",\n      \"summary\": \"SLR Food Distribution Inc. of Hicksville, New York, is voluntarily recalling Wise Wife Brand Ground Cinnamon because it has the potential to be contaminated with elevated levels of lead.\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/slr-food-distribution-inc-recalls-wise-wife-brand-ground-cinnamon-due-elevated-lead-levels\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-29T21:26:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/taylor-farms-issues-recall-h-e-b-backyard-bbq-chop-salad-kit-due-potential-undeclared-soy-and-tree\",\n      \"title\": \"Taylor Farms Issues Recall for H-E-B Backyard BBQ Chop Salad Kit Due to the Potential Undeclared Soy and Tree Nuts(Almonds)\",\n      \"summary\": \"Taylor Farms of Dallas, Texas is recalling H-E-B Backyard BBQ Chop Salad kit due to the potential undeclared soy and tree nuts(almonds).\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/taylor-farms-issues-recall-h-e-b-backyard-bbq-chop-salad-kit-due-potential-undeclared-soy-and-tree\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-27T18:18:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/haifa-smoked-fish-recalls-cold-smoked-sprats-due-potential-health-risk\",\n      \"title\": \"HAIFA SMOKED FISH Recalls Cold Smoked Sprats Due to Potential Health Risk\",\n      \"summary\": \"HAIFA SMOKED FISH of QUEENS NY is recalling approximately 560 lbs. of Cold Smoked Sprats, due to potential contamination with Clostridium botulinum, a bacterium which can cause life-threatening…\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/haifa-smoked-fish-recalls-cold-smoked-sprats-due-potential-health-risk\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-27T15:15:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/tonight-we-ride-llc-issues-voluntary-recall-ultimate-forza-male-supplement-due-presence-undeclared\",\n      \"title\": \"Tonight We Ride, LLC Issues Voluntary Recall of Ultimate Forza Male Supplement Due to Presence of Undeclared Sildenafil, Tadalafil, and Dapoxetine\",\n      \"summary\": \"October 24, 2026, Tonight We Ride, LLC of Lakeville, Minnesota is voluntarily recalling all lots of Ultimate Forza Male Supplement capsules to the consumer level because it has been found to contain…\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/tonight-we-ride-llc-issues-voluntary-recall-ultimate-forza-male-supplement-due-presence-undeclared\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-24T18:23:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/natural-grocers-recalls-natural-grocers-brand-organic-2-pound-mung-beans-due-potential-presence\",\n      \"title\": \"Natural Grocers Recalls Natural Grocers Brand Organic 2 Pound Mung Beans Due to Potential Presence of Foreign Material\",\n      \"summary\": \"10/22/2026, Vitamin Cottage Natural Food Markets, Inc., Lakewood, Colorado, is recalling Natural Grocers Brand Organic 2-Pound Mung Beans due to the potential presence of glass.\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/natural-grocers-recalls-natural-grocers-brand-organic-2-pound-mung-beans-due-potential-presence\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-22T22:59:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/winco-foods-llc-issues-allergy-alert-undeclared-sesame-hoagie-rolls\",\n      \"title\": \"WinCo Foods LLC Issues Allergy Alert on Undeclared Sesame in Hoagie Rolls\",\n      \"summary\": \"October 22, 2026 - WinCo Foods of Boise, ID is recalling the following WinCo Foods Brand Hoagie Rolls due to undeclared sesame.\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/winco-foods-llc-issues-allergy-alert-undeclared-sesame-hoagie-rolls\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-22T19:42:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/wedgewood-pharmacy-issues-recall-certain-compounded-veterinary-medications-within-expiry-due\",\n      \"title\": \"Wedgewood Pharmacy Issues Recall of Certain Compounded Veterinary Medications Within Expiry Due to Potential Potency Issues\",\n      \"summary\": \"SWEDESBORO, N.J., (October 21, 2026) - Wedgewood Pharmacy LLC (\\\"Wedgewood\\\") is recalling certain compounded veterinary medications within expiry at the provider/customer level due to inconsistencies…\",\n      \"url\": \"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/wedgewood-pharmacy-issues-recall-certain-compounded-veterinary-medications-within-expiry-due\",\n      \"source\": \"FDA Recalls\",\n      \"published_at\": \"2026-10-21T20:24:00+00:00\",\n      \"image_url\": null\n    },\n    {\n      \"id\": \"http://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/lidl-us-recalls-gelatelli-coffee-vanilla-gelato-due-possible-health-risk\",\n      \"title\": \"Lidl US Recalls Gelatelli Coffee & Vanilla Gelato Due to Possible Health Risk\",\n      \"summary\": \"ARLINGTON, VA – OCTOBER 16, 2026 – Lidl US is recalling one lot of Gelatelli Coffee & Vanilla Gelato with Coffee Sauce & Cookie Pieces 16 FL OZ (1 PT) UPC 4 0564897 22458 Lot: 085261 Best By…\",\n      \"url\": \"https://www.fda.gov/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Dọn dẹp (chạy cuối)",
+      "item": [
+        {
+          "name": "Đăng xuất",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Xoá tài khoản (KHÔNG hoàn tác)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trạng thái 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/delete-account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "delete-account"
+              ]
+            },
+            "description": "Xoá tài khoản và toàn bộ dữ liệu. Chỉ chạy khi muốn dọn dữ liệu demo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

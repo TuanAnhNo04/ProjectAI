@@ -91,7 +91,7 @@ class User {
 /// Tách khỏi [User] để token có **vòng đời riêng** (xoá khi 401 ở Day 11)
 /// mà không đụng vào dữ liệu danh tính.
 class AuthSession {
-  const AuthSession({required this.user, this.token});
+  const AuthSession({required this.user, this.token, this.refreshToken});
 
   /// Đọc phản hồi `/login`. Chịu được cả 3 kiểu server:
   /// `{"user": {...}, "token": "..."}`, `{"token": "..."}`, và
@@ -102,9 +102,19 @@ class AuthSession {
         ? User.fromJson(asJsonMap(rawUser, keyUser))
         : User(username: asString(json[User.keyUsername]));
 
+    // `medassist-core` trả token lồng: {"token": {"access_token", "refresh_token"}}.
+    final rawToken = json[keyToken];
+    final tokenMap = rawToken is Map ? asJsonMap(rawToken, keyToken) : null;
+    final access = tokenMap != null
+        ? asStringOrNull(tokenMap[keyAccessToken])
+        : asStringOrNull(rawToken ?? json[keyAccessToken]);
+
     return AuthSession(
       user: user,
-      token: asStringOrNull(json[keyToken] ?? json[keyAccessToken]),
+      token: access,
+      refreshToken: asStringOrNull(
+        tokenMap?[keyRefreshToken] ?? json[keyRefreshToken],
+      ),
     );
   }
 
@@ -114,12 +124,16 @@ class AuthSession {
   static const String keyUser = 'user';
   static const String keyToken = 'token';
   static const String keyAccessToken = 'access_token';
+  static const String keyRefreshToken = 'refresh_token';
 
   final User user;
 
   /// `null` nghĩa là server bản cũ **không xác thực bằng token** — app vẫn
   /// chạy được như màn Login cũ, chỉ là Day 11 chưa có việc gắn header.
   final String? token;
+
+  /// Token làm mới phiên (chỉ `medassist-core` có). **Không** được in/log.
+  final String? refreshToken;
 
   bool get isAuthenticated => token != null && token!.isNotEmpty;
 

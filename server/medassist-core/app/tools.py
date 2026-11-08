@@ -91,6 +91,10 @@ def cite_from(med: MedicineResponse, field_name: str, value: str, idx: int) -> C
         excerpt=" ".join(value.split())[:400],
         source=med.source,
         is_authoritative=med.is_authoritative,
+        source_url=med.source_url or "",
+        retrieved_at=med.retrieved_at or "",
+        license=med.license or "",
+        reviewed_by=med.reviewed_by or "",
     )
 
 
@@ -122,6 +126,12 @@ class SearchDrugTool:
             found = repo.search_medicines(candidate, 5, 0).results
             if found:
                 break
+
+        if not found:
+            # Hướng 2: chỉ khi chủ dự án đã cấu hình nguồn; mặc định trả rỗng, không gọi mạng.
+            from app import live_sources
+
+            found = live_sources.lookup(query)
 
         if not found:
             return ToolResult(
@@ -252,6 +262,7 @@ class ExplainForPatientTool:
     ) -> ToolResult:
         del user_id  # tra cứu công khai — nhưng `repo` thì **dùng**, đừng xoá
         query = str(arguments.get("query", "")).strip()
+        shown = str(arguments.get("display") or query).strip()  # C-02: echo bản gốc có dấu
         if not query:
             return ToolResult(
                 ok=False,
@@ -261,13 +272,22 @@ class ExplainForPatientTool:
 
         from app.retrieval import build_citations  # import cục bộ tránh vòng lặp
 
-        hits = build_citations(repo.list_medicines(100, 0).results, query, top_k=5)
+        # ⚠️ Không dùng `list_medicines(100, 0)`: chỉ thấy 100 thuốc đầu theo tên.
+        # Chấm điểm trên câu GỐC: `query` đã bỏ từ chức năng ("dụng"), nên cụm hỏi
+        # "tác dụng" không còn nhận ra được và "tác" khớp nhầm "tặc"/"tắc".
+        question = shown or query
+        hits = build_citations(repo.candidate_medicines(query), question, top_k=5)
+        if not hits:
+            from app import live_sources  # Hướng 2 (mặc định tắt)
+
+            hits = build_citations(live_sources.lookup(query), question, top_k=5)
         if not hits:
             return ToolResult(
                 ok=False,
                 reason=TOOL_NO_DATA,
                 user_message=(
-                    f"Không tìm thấy thông tin trong nguồn hiện có về '{query}'."
+                    f"Không tìm thấy thông tin trong nguồn hiện có về '{shown}'. "
+                    "Hãy hỏi dược sĩ hoặc bác sĩ."
                 ),
             )
 

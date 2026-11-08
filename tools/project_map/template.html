@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>MedAssist - Sơ đồ dự án</title>
+<style>
+  :root {
+    --bg:#f3f8f8; --card:#ffffff; --ink:#0b3b3a; --muted:#587372; --line:#cfe3e1; --accent:#0e9f95; --accent-d:#0a6f68;
+    --flow:#7c3aed; --e-import:#94a3b8; --e-calls:#2563eb; --e-handled:#16a34a; --e-uses:#ea580c; --warn:#b45309;
+    --c-user:#8b5cf6; --c-ui:#0e9f95; --c-state:#2563eb; --c-adapter:#0891b2; --c-api:#db2777;
+    --c-server:#16a34a; --c-ai:#ea580c; --c-store:#a16207; --c-devtool:#64748b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1a1a; --card:#12292a; --ink:#e6f6f5; --muted:#98bfbd; --line:#1f4547; --accent:#2dd4bf; --accent-d:#5eead4;
+            --flow:#a78bfa; --e-import:#64748b; --e-calls:#60a5fa; --e-handled:#4ade80; --e-uses:#fb923c; --warn:#fbbf24;
+            --c-user:#a78bfa; --c-ui:#2dd4bf; --c-state:#60a5fa; --c-adapter:#22d3ee; --c-api:#f472b6;
+            --c-server:#4ade80; --c-ai:#fb923c; --c-store:#facc15; --c-devtool:#94a3b8; }
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--ink); font:14px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif; display:flex; flex-direction:column; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--card); }
+  header h1 { margin:0; font-size:1.1rem; color:var(--accent-d); }
+  .tabs { display:flex; gap:6px; }
+  .tabs button, .btn { border:1px solid var(--line); background:var(--bg); color:var(--ink); padding:5px 12px; border-radius:999px; cursor:pointer; font:inherit; }
+  .tabs button[aria-selected="true"] { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  .btn:hover, .tabs button:hover { border-color:var(--accent); }
+  #q { flex:1 1 220px; max-width:360px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; background:var(--bg); color:var(--ink); font:inherit; }
+  .stats { display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
+  .chipstat { background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:12px; color:var(--muted); }
+  .chipstat b { color:var(--ink); }
+  main { flex:1; min-height:0; }
+  .grid3 { display:grid; grid-template-columns:250px minmax(0,1fr) 370px; height:100%; }
+  aside { overflow:auto; padding:12px; background:var(--card); }
+  #side { border-right:1px solid var(--line); }
+  #panel { border-left:1px solid var(--line); }
+  aside h3 { margin:14px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  aside h3:first-child { margin-top:0; }
+  #stage { position:relative; min-width:0; background:var(--bg); }
+  #svg { width:100%; height:100%; display:block; cursor:grab; touch-action:none; user-select:none; }
+  #svg.panning { cursor:grabbing; }
+  .toolbar { position:absolute; top:10px; right:12px; display:flex; gap:6px; z-index:3; }
+  .lane-row { display:flex; align-items:center; gap:8px; padding:2px 0; cursor:pointer; }
+  .dot { width:11px; height:11px; border-radius:3px; flex:none; }
+  .flowbtn { display:block; width:100%; text-align:left; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:10px; padding:7px 10px; margin-bottom:6px; cursor:pointer; font:inherit; }
+  .flowbtn:hover { border-color:var(--flow); }
+  .flowbtn.on { border-color:var(--flow); background:color-mix(in srgb,var(--flow) 12%,var(--card)); }
+  .flowbtn small { display:block; color:var(--muted); font-size:12px; line-height:1.35; }
+  .legend { display:grid; gap:4px; font-size:12px; color:var(--muted); }
+  .legend i { display:inline-block; width:26px; height:0; border-top:3px solid; vertical-align:middle; margin-right:6px; }
+  /* SVG */
+  .lane-bg { fill:color-mix(in srgb,var(--c) 6%,transparent); stroke:color-mix(in srgb,var(--c) 25%,transparent); }
+  .lane-title { font-size:13px; font-weight:700; fill:var(--c); }
+  .node { cursor:pointer; }
+  .node rect { fill:color-mix(in srgb,var(--c) 13%,var(--card)); stroke:var(--c); stroke-width:1.2; }
+  .node text { font-size:12px; fill:var(--ink); pointer-events:none; }
+  .node.external rect { stroke-dasharray:4 3; }
+  .node:hover rect { stroke-width:2.4; }
+  .node.dim { opacity:.16; }
+  .node.sel rect { stroke-width:3.2; }
+  .node.inflow rect { stroke-width:2.6; stroke:var(--flow); }
+  .node.cur rect { fill:var(--flow); stroke:var(--flow); stroke-width:3.4; }
+  .node.cur text { fill:#fff; font-weight:700; }
+  .l-user{--c:var(--c-user)} .l-ui{--c:var(--c-ui)} .l-state{--c:var(--c-state)} .l-adapter{--c:var(--c-adapter)}
+  .l-api{--c:var(--c-api)} .l-server{--c:var(--c-server)} .l-ai{--c:var(--c-ai)} .l-store{--c:var(--c-store)} .l-devtool{--c:var(--c-devtool)}
+  .e { fill:none; stroke-width:1.6; }
+  .e-import { stroke:var(--e-import); } .e-calls { stroke:var(--e-calls); stroke-width:2; }
+  .e-handled_by { stroke:var(--e-handled); stroke-width:2; } .e-uses { stroke:var(--e-uses); stroke-width:2; stroke-dasharray:6 4; }
+  .e-flow { stroke:var(--flow); stroke-width:2.6; } .e-flow.cur { stroke-width:4.2; }
+  .e.faint { opacity:.22; stroke-width:1; }
+  .badge rect { fill:var(--flow); } .badge text { fill:#fff; font-size:10.5px; font-weight:700; text-anchor:middle; }
+  /* panel */
+  .pill { display:inline-block; padding:1px 9px; border-radius:999px; font-size:11.5px; font-weight:600; background:color-mix(in srgb,var(--c,var(--accent)) 18%,transparent); color:var(--c,var(--accent-d)); margin-right:4px; }
+  .path { font:12px Consolas,"Courier New",monospace; color:var(--muted); word-break:break-all; }
+  .chip { display:inline-block; margin:2px 4px 2px 0; padding:2px 9px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer; font:12px Consolas,"Courier New",monospace; }
+  .chip:hover { border-color:var(--accent); color:var(--accent-d); }
+  .card { border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin:6px 0; background:var(--bg); }
+  .card b { color:var(--accent-d); }
+  .data { display:grid; grid-template-columns:auto 1fr; gap:2px 8px; font-size:12.5px; margin-top:4px; }
+  .data span:nth-child(odd) { color:var(--muted); }
+  code { background:var(--bg); padding:1px 6px; border-radius:5px; font:12px Consolas,"Courier New",monospace; }
+  details { margin:6px 0; } summary { cursor:pointer; color:var(--accent-d); font-weight:600; }
+  ul.sym { list-style:none; padding:0; margin:6px 0; font-size:12.5px; } ul.sym li { padding:2px 0; border-bottom:1px dashed var(--line); }
+  ul.sym i { color:var(--muted); font-style:normal; font-size:11px; }
+  ol.steps { padding-left:0; list-style:none; margin:6px 0; }
+  ol.steps li { display:flex; gap:8px; padding:5px 6px; border-radius:8px; cursor:pointer; align-items:flex-start; }
+  ol.steps li:hover { background:var(--bg); } ol.steps li.on { background:color-mix(in srgb,var(--flow) 14%,transparent); }
+  ol.steps .n { flex:none; width:22px; height:22px; border-radius:50%; background:var(--flow); color:#fff; font-size:11px; font-weight:700; display:grid; place-items:center; }
+  ol.steps li small { display:block; color:var(--muted); font-size:11.5px; }
+  .banner { background:color-mix(in srgb,var(--warn) 14%,var(--card)); border:1px solid var(--warn); border-radius:10px; padding:6px 10px; margin-bottom:8px; font-size:12.5px; }
+  #player { position:absolute; left:12px; right:12px; bottom:12px; z-index:3; background:var(--card); border:1px solid var(--flow); border-radius:14px; padding:10px 14px; box-shadow:0 6px 24px rgba(0,0,0,.18); display:none; }
+  #player.on { display:block; }
+  #player .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #player h4 { margin:0; font-size:14px; color:var(--flow); flex:1 1 200px; }
+  #player p { margin:4px 0 0; font-size:13px; }
+  .io { display:flex; gap:14px; flex-wrap:wrap; margin-top:4px; font-size:12.5px; color:var(--muted); }
+  .io b { color:var(--ink); }
+  /* bảng */
+  .page { padding:16px 20px; overflow:auto; height:100%; }
+  table { border-collapse:collapse; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; font-size:13px; }
+  th { background:var(--bg); color:var(--muted); position:sticky; top:0; }
+  tr.clickable { cursor:pointer; } tr.clickable:hover td { background:color-mix(in srgb,var(--accent) 8%,var(--card)); }
+  .cols { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+  .hidden { display:none !important; }
+  @media (max-width: 1000px) {
+    .grid3 { grid-template-columns:1fr; grid-template-rows:auto 70vh auto; height:auto; }
+    main { overflow:auto; } #side,#panel { border:0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🗺️ MedAssist — sơ đồ dự án</h1>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="graph" aria-selected="true">Sơ đồ &amp; luồng</button>
+    <button role="tab" data-tab="libs" aria-selected="false">Thư viện &amp; công cụ</button>
+    <button role="tab" data-tab="api" aria-selected="false">API &amp; dữ liệu</button>
+  </div>
+  <input id="q" type="search" placeholder="Tìm file, lớp, hàm… (phím /)" autocomplete="off">
+  <div class="stats" id="stats"></div>
+</header>
+
+<main>
+  <div id="view-graph" class="grid3">
+    <aside id="side">
+      <h3>Luồng chạy (bấm để xem)</h3>
+      <div id="flows"></div>
+      <h3>Các làn</h3>
+      <div id="lanes"></div>
+      <h3>Tuỳ chọn</h3>
+      <label class="lane-row"><input type="checkbox" id="showAll"> Hiện mọi liên kết import</label>
+      <h3>Chú thích</h3>
+      <div class="legend">
+        <span><i style="border-color:var(--flow)"></i>luồng đang xem</span>
+        <span><i style="border-color:var(--e-calls)"></i>app gọi API</span>
+        <span><i style="border-color:var(--e-handled)"></i>endpoint → router</span>
+        <span><i style="border-color:var(--e-uses);border-top-style:dashed"></i>dùng dịch vụ/lưu trữ ngoài</span>
+        <span><i style="border-color:var(--e-import)"></i>import mã nguồn</span>
+        <span>Ô nét đứt = thành phần ngoài mã (thiết bị, DB, mô hình)</span>
+      </div>
+    </aside>
+    <section id="stage">
+      <div class="toolbar">
+        <button class="btn" id="zin" title="Phóng to">＋</button>
+        <button class="btn" id="zout" title="Thu nhỏ">－</button>
+        <button class="btn" id="fit" title="Vừa khung">⤢ Vừa khung</button>
+      </div>
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ dự án"></svg>
+      <div id="player">
+        <div class="row">
+          <h4 id="pl-title"></h4>
+          <button class="btn" id="pl-prev" title="Bước trước (←)">◀</button>
+          <span id="pl-count" class="chipstat"></span>
+          <button class="btn" id="pl-next" title="Bước sau (→)">▶</button>
+          <button class="btn" id="pl-auto" title="Tự chạy">⏵ Tự chạy</button>
+          <button class="btn" id="pl-close" title="Đóng (Esc)">✕</button>
+        </div>
+        <p id="pl-detail"></p>
+        <div class="io" id="pl-io"></div>
+      </div>
+    </section>
+    <aside id="panel"></aside>
+  </div>
+
+  <div id="view-libs" class="page hidden">
+    <p style="color:var(--muted)">Thư viện khai báo trong <code>pubspec.yaml</code> và <code>requirements.txt</code>, kèm các file thực sự dùng chúng (quét từ mã). Bấm một dòng để xem danh sách file; “Làm nổi bật trong sơ đồ” để xem chúng nằm đâu.</p>
+    <table id="libtable"><thead><tr><th>Thư viện</th><th>Phiên bản</th><th>Loại</th><th>Dùng để</th><th>Số file</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="view-api" class="page hidden">
+    <h3 style="margin-top:0">Endpoint backend</h3>
+    <table id="eptable"><thead><tr><th>Phương thức</th><th>Đường dẫn</th><th>Hàm xử lý</th><th>Cần token</th><th>Mô tả</th></tr></thead><tbody></tbody></table>
+    <h3>Bảng dữ liệu (SQLite)</h3>
+    <div class="cols" id="tables"></div>
+  </div>
+</main>
+
+<script>
+const D = /*__DATA__*/null;
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const laneIdx = {}; D.lanes.forEach((l, i) => laneIdx[l.id] = i);
+  const laneTitle = {}; D.lanes.forEach(l => laneTitle[l.id] = l.title);
+  const nodes = new Map(D.nodes.map(n => [n.id, n]));
+  const flowsById = new Map(D.flows.map(f => [f.id, f]));
+  const out = new Map(), inn = new Map();
+  const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
+  D.edges.forEach(e => { push(out, e.s, e); push(inn, e.t, e); });
+  const KIND = { screen: "màn hình", widget: "widget", entry: "điểm vào", theme: "giao diện", state: "trạng thái", config: "cấu hình",
+    network: "mạng", port: "cổng (hợp đồng)", model: "mô hình dữ liệu", adapter: "adapter", local: "lưu cục bộ", controller: "controller",
+    router: "router", service: "dịch vụ", agent: "agent / AI", llm: "LLM", repo: "kho dữ liệu", script: "script / công cụ",
+    external: "ngoài mã nguồn", endpoint: "endpoint", module: "module" };
+
+  // ---------------------------------------------------------------- bố cục
+  const NODE_W = 196, NODE_H = 30, VGAP = 8, GGAP = 18, TOP = 64, LEFT = 30, LANE_STEP = 262;
+  const pos = new Map();
+  let maxY = TOP;
+  D.lanes.forEach((lane, li) => {
+    const list = D.nodes.filter(n => n.lane === lane.id).sort((a, b) => {
+      const ga = a.group === "external" ? "~" : a.group, gb = b.group === "external" ? "~" : b.group;
+      return ga.localeCompare(gb) || a.label.localeCompare(b.label);
+    });
+    let y = TOP, prev = null;
+    for (const n of list) {
+      if (prev !== null && n.group !== prev) y += GGAP;
+      pos.set(n.id, { x: LEFT + li * LANE_STEP, y: y, cy: y + NODE_H / 2 });
+      y += NODE_H + VGAP; prev = n.group;
+    }
+    maxY = Math.max(maxY, y);
+  });
+  const WORLD_W = LEFT * 2 + (D.lanes.length - 1) * LANE_STEP + NODE_W;
+
+  // ---------------------------------------------------------------- trạng thái
+  const state = { sel: null, flow: null, step: 0, q: "", showAll: false, lanes: new Set(D.lanes.map(l => l.id)), hl: null, hlName: "", auto: null };
+
+  // ---------------------------------------------------------------- SVG
+  const svg = $("#svg");
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const defs = el("defs", {}, svg);
+  [["flow", "var(--flow)"], ["calls", "var(--e-calls)"], ["handled_by", "var(--e-handled)"], ["uses", "var(--e-uses)"], ["import", "var(--e-import)"]].forEach(([k, c]) => {
+    const m = el("marker", { id: "m-" + k, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" }, defs);
+    const p = el("path", { d: "M0 0L10 5L0 10z" }, m); p.style.fill = c;
+  });
+  const gLanes = el("g", {}, svg), gEdges = el("g", {}, svg), gNodes = el("g", {}, svg), gBadges = el("g", {}, svg);
+  D.lanes.forEach((lane, li) => {
+    const g = el("g", { class: "l-" + lane.id }, gLanes);
+    el("rect", { class: "lane-bg", x: LEFT + li * LANE_STEP - 12, y: TOP - 46, width: NODE_W + 24, height: maxY - TOP + 64, rx: 14 }, g);
+    const cnt = D.nodes.filter(n => n.lane === lane.id).length;
+    const t = el("text", { class: "lane-title", x: LEFT + li * LANE_STEP, y: TOP - 22 }, g);
+    t.textContent = lane.title + " (" + cnt + ")";
+  });
+  const els = new Map();
+  D.nodes.forEach(n => {
+    const p = pos.get(n.id);
+    const g = el("g", { class: "node l-" + n.lane + (n.kind === "external" ? " external" : ""), transform: "translate(" + p.x + "," + p.y + ")", "data-id": n.id }, gNodes);
+    el("rect", { width: NODE_W, height: NODE_H, rx: 7 }, g);
+    const t = el("text", { x: 9, y: 20 }, g);
+    t.textContent = n.label.length > 29 ? n.label.slice(0, 28) + "…" : n.label;
+    const ti = el("title", {}, g); ti.textContent = n.label + (n.desc ? "\n" + n.desc : "");
+    els.set(n.id, g);
+  });
+
+  // ---------------------------------------------------------------- khung nhìn (zoom/pan)
+  let view = { x: 0, y: 0, w: WORLD_W, h: maxY + 40 };
+  function applyView() {
+    const r = svg.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) view.h = view.w * r.height / r.width;
+    svg.setAttribute("viewBox", view.x + " " + view.y + " " + view.w + " " + view.h);
+  }
+  function fit() {
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    for (const [id, p] of pos) {
+      if (!state.lanes.has(nodes.get(id).lane)) continue;
+      x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x + NODE_W); y2 = Math.max(y2, p.y + NODE_H);
+    }
+    if (!isFinite(x1)) return;
+    const r = svg.getBoundingClientRect(); const pad = 50;
+    const w = Math.max(x2 - x1 + pad * 2, (y2 - y1 + pad * 2) * r.width / r.height);
+    view = { x: (x1 + x2) / 2 - w / 2, y: y1 - pad - 30, w: w, h: 0 }; applyView();
+  }
+  function zoom(f, cx, cy) {
+    const r = svg.getBoundingClientRect();
+    const px = cx == null ? r.width / 2 : cx, py = cy == null ? r.height / 2 : cy;
+    const wx = view.x + px / r.width * view.w, wy = view.y + py / r.height * view.h;
+    const nw = Math.min(Math.max(view.w * f, 320), 40000), k = nw / view.w;
+    view.x = wx - (wx - view.x) * k; view.y = wy - (wy - view.y) * k; view.w = nw; applyView();
+  }
+  let anim = null;
+  function focusNode(id) {
+    const p = pos.get(id); if (!p) return;
+    const r = svg.getBoundingClientRect();
+    const tw = Math.min(view.w, 1500), th = tw * r.height / r.width;
+    const target = { x: p.x + NODE_W / 2 - tw / 2 - (state.flow ? 0 : 0), y: p.y - th / 2 + NODE_H / 2 - (state.flow ? th * 0.08 : 0), w: tw };
+    const from = { x: view.x, y: view.y, w: view.w }, t0 = performance.now();
+    cancelAnimationFrame(anim);
+    (function tick(now) {
+      const k = Math.min(1, (now - t0) / 350), e = 1 - Math.pow(1 - k, 3);
+      view.x = from.x + (target.x - from.x) * e; view.y = from.y + (target.y - from.y) * e; view.w = from.w + (target.w - from.w) * e; applyView();
+      if (k < 1) anim = requestAnimationFrame(tick);
+    })(t0);
+  }
+  let drag = null, moved = false;
+  svg.addEventListener("pointerdown", e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; moved = false; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener("pointermove", e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; svg.classList.add("panning"); }
+    if (!moved) return;
+    const r = svg.getBoundingClientRect();
+    view.x = drag.vx - dx * view.w / r.width; view.y = drag.vy - dy * view.h / r.height; applyView();
+  });
+  svg.addEventListener("pointerup", e => {
+    const wasMoved = moved; drag = null; svg.classList.remove("panning");
+    if (wasMoved) return;
+    const g = e.target.closest ? e.target.closest(".node") : null;
+    if (g) selectNode(g.getAttribute("data-id"), false); else if (state.sel) { state.sel = null; refresh(); }
+  });
+  svg.addEventListener("wheel", e => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoom(e.deltaY > 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  $("#zin").onclick = () => zoom(1 / 1.25); $("#zout").onclick = () => zoom(1.25); $("#fit").onclick = fit;
+  window.addEventListener("resize", applyView);
+
+  // ---------------------------------------------------------------- cạnh
+  function edgeGeom(sid, tid) {
+    const a = pos.get(sid), b = pos.get(tid); if (!a || !b) return null;
+    const la = laneIdx[nodes.get(sid).lane], lb = laneIdx[nodes.get(tid).lane];
+    let x1, y1, x2, y2, c1x, c2x;
+    y1 = a.cy; y2 = b.cy;
+    if (la < lb) { x1 = a.x + NODE_W; x2 = b.x; const d = Math.max(50, (x2 - x1) / 2); c1x = x1 + d; c2x = x2 - d; }
+    else if (la > lb) { x1 = a.x; x2 = b.x + NODE_W; const d = Math.max(50, (x1 - x2) / 2); c1x = x1 - d; c2x = x2 + d; }
+    else { x1 = a.x + NODE_W; x2 = b.x + NODE_W; const d = 46 + Math.min(60, Math.abs(y2 - y1) / 6); c1x = x1 + d; c2x = x2 + d; }
+    return { d: "M" + x1 + "," + y1 + " C" + c1x + "," + y1 + " " + c2x + "," + y2 + " " + x2 + "," + y2 };
+  }
+  const visibleNode = id => state.lanes.has(nodes.get(id).lane);
+  function addEdge(e, cls, marker) {
+    if (!visibleNode(e.s) || !visibleNode(e.t)) return;
+    const g = edgeGeom(e.s, e.t); if (!g) return;
+    const p = el("path", { d: g.d, class: "e " + cls, "marker-end": "url(#m-" + marker + ")" }, gEdges);
+    const t = el("title", {}, p); t.textContent = nodes.get(e.s).label + " → " + nodes.get(e.t).label + (e.label ? " · " + e.label : "");
+  }
+
+  // ---------------------------------------------------------------- vẽ lại
+  function matchNode(n, q) {
+    if (n.label.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) || (n.desc || "").toLowerCase().includes(q)) return true;
+    return n.symbols.some(s => s.name.toLowerCase().includes(q));
+  }
+  function refresh() {
+    const f = state.flow ? flowsById.get(state.flow) : null;
+    const inFlow = new Map();
+    if (f) f.steps.forEach((s, i) => push(inFlow, s.node, i + 1));
+    const neigh = new Set();
+    if (state.sel) { neigh.add(state.sel); (out.get(state.sel) || []).forEach(e => neigh.add(e.t)); (inn.get(state.sel) || []).forEach(e => neigh.add(e.s)); }
+    const q = state.q.trim().toLowerCase();
+    const matches = q ? new Set(D.nodes.filter(n => matchNode(n, q)).map(n => n.id)) : null;
+    const curNode = f && f.steps[state.step] ? f.steps[state.step].node : null;
+    els.forEach((g, id) => {
+      const n = nodes.get(id);
+      g.style.display = state.lanes.has(n.lane) ? "" : "none";
+      let dim = false;
+      if (f) dim = !inFlow.has(id) && id !== state.sel;
+      else if (state.sel) dim = !neigh.has(id);
+      if (matches) dim = !matches.has(id);
+      if (state.hl) dim = !state.hl.has(id);
+      g.classList.toggle("dim", dim);
+      g.classList.toggle("sel", id === state.sel);
+      g.classList.toggle("inflow", !!f && inFlow.has(id));
+      g.classList.toggle("cur", id === curNode);
+    });
+    gEdges.textContent = ""; gBadges.textContent = "";
+    if (f) {
+      f.steps.forEach((s, i) => {
+        if (i === 0) return; const prev = f.steps[i - 1]; if (prev.node === s.node) return;
+        addEdge({ s: prev.node, t: s.node, label: "bước " + i + " → " + (i + 1) }, "e-flow" + (i === state.step ? " cur" : ""), "flow");
+      });
+      inFlow.forEach((idx, id) => {
+        if (!visibleNode(id)) return; const p = pos.get(id);
+        const txt = idx.length > 3 ? idx.slice(0, 3).join(",") + "…" : idx.join(",");
+        const w = 10 + txt.length * 6.2;
+        const b = el("g", { class: "badge", transform: "translate(" + (p.x - w / 2 + 4) + "," + (p.y - 7) + ")" }, gBadges);
+        el("rect", { width: w, height: 15, rx: 7.5 }, b); const t = el("text", { x: w / 2, y: 11 }, b); t.textContent = txt;
+      });
+    } else {
+      if (state.showAll) D.edges.filter(e => e.kind === "import").forEach(e => addEdge(e, "e-import faint", "import"));
+      if (state.sel) [].concat(out.get(state.sel) || [], inn.get(state.sel) || []).forEach(e => addEdge(e, "e-" + e.kind, e.kind));
+    }
+    renderPanel(); renderPlayer(); renderSide(); updateHash();
+  }
+
+  // ---------------------------------------------------------------- hành động
+  function showLaneFor(id) { const l = nodes.get(id).lane; if (!state.lanes.has(l)) { state.lanes.add(l); renderSide(); } }
+  function selectNode(id, focus) {
+    if (!nodes.has(id)) return; showLaneFor(id); state.sel = id; refresh(); if (focus) focusNode(id);
+  }
+  function startFlow(id, step) {
+    stopAuto(); state.flow = id; state.step = step || 0; state.sel = null; state.hl = null; refresh();
+    const f = flowsById.get(id); if (f && f.steps[state.step]) focusNode(f.steps[state.step].node);
+  }
+  function setStep(i) {
+    const f = flowsById.get(state.flow); if (!f) return;
+    state.step = Math.max(0, Math.min(f.steps.length - 1, i)); state.sel = null; refresh(); focusNode(f.steps[state.step].node);
+  }
+  function stopFlow() { stopAuto(); state.flow = null; state.step = 0; refresh(); }
+  function stopAuto() { if (state.auto) { clearInterval(state.auto); state.auto = null; } $("#pl-auto").textContent = "⏵ Tự chạy"; }
+  function toggleAuto() {
+    if (state.auto) { stopAuto(); return; }
+    $("#pl-auto").textContent = "⏸ Dừng";
+    state.auto = setInterval(() => {
+      const f = flowsById.get(state.flow); if (!f) { stopAuto(); return; }
+      if (state.step >= f.steps.length - 1) { stopAuto(); return; } setStep(state.step + 1);
+    }, 2600);
+  }
+  function goTab(t) {
+    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+    ["graph", "libs", "api"].forEach(k => $("#view-" + k).classList.toggle("hidden", k !== t));
+    if (t === "graph") applyView();
+  }
+
+  // ---------------------------------------------------------------- panel phải
+  const chip = id => nodes.has(id) ? '<button class="chip" data-go="' + esc(id) + '" title="' + esc(id) + '">' + esc(nodes.get(id).label) + "</button>" : "";
+  function relList(title, edges, pick) {
+    if (!edges.length) return "";
+    const byKind = {}; edges.forEach(e => (byKind[e.kind] = byKind[e.kind] || []).push(e));
+    let h = "<h3>" + title + " (" + edges.length + ")</h3>";
+    Object.keys(byKind).forEach(k => {
+      const lbl = { import: "import", calls: "gọi HTTP", handled_by: "xử lý bởi", uses: "dùng dịch vụ/lưu trữ" }[k] || k;
+      h += '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + lbl + "</div>" + byKind[k].map(e => chip(pick(e)) + (e.kind === "uses" ? '<span style="font-size:11px;color:var(--muted)">' + esc(e.label) + "</span> " : "")).join("");
+    });
+    return h;
+  }
+  function renderPanel() {
+    const p = $("#panel"); let h = "";
+    if (state.hl) h += '<div class="banner">Đang làm nổi bật các file dùng <b>' + esc(state.hlName) + '</b> (' + state.hl.size + '). <button class="chip" data-clearhl="1">Bỏ làm nổi bật</button></div>';
+    if (state.sel) h += nodePanel(nodes.get(state.sel));
+    else if (state.flow) h += flowPanel(flowsById.get(state.flow));
+    else h += welcome();
+    p.innerHTML = h;
+  }
+  function welcome() {
+    const s = D.stats;
+    return "<h3>Cách dùng</h3><ul style='padding-left:18px;margin:4px 0'>" +
+      "<li><b>Bấm một luồng</b> bên trái (Đăng nhập, Chat…) → xem từng bước, dữ liệu vào/ra, nút ◀ ▶ hoặc “Tự chạy”.</li>" +
+      "<li><b>Bấm một ô</b> → thấy file, mô tả, hàm/lớp, ai gọi nó, nó gọi ai, nó nằm trong luồng nào.</li>" +
+      "<li>Kéo nền để di chuyển, lăn chuột để phóng to/thu nhỏ, phím <code>/</code> để tìm, <code>Esc</code> để bỏ chọn.</li>" +
+      "<li>Ô <b>nét đứt</b> là thứ ngoài mã nguồn: Keystore, SQLite, Ollama, ML Kit, adb…</li></ul>" +
+      "<h3>Số liệu quét từ mã</h3><div class='data'><span>Số file</span><span>" + s.files + " (" + s.dart + " Dart · " + s.python + " Python · " + s.ps1 + " PowerShell)</span>" +
+      "<span>Số dòng</span><span>" + s.lines.toLocaleString("vi-VN") + "</span><span>Liên kết</span><span>" + s.edges + "</span><span>Endpoint</span><span>" + s.endpoints + "</span>" +
+      "<span>Bảng SQLite</span><span>" + s.tables + "</span><span>Luồng mô tả</span><span>" + s.flows + "</span></div>" +
+      "<h3>Lưu ý</h3><p style='font-size:12.5px;color:var(--muted)'>Cấu trúc, import, route, bảng, thư viện được <b>quét tự động</b> từ mã. Các luồng được <b>viết tay</b> và được script kiểm tra với mã thật (file/endpoint phải tồn tại). Trang này không chứa dữ liệu người dùng hay bí mật.</p>";
+  }
+  function nodePanel(n) {
+    const lane = laneTitle[n.lane];
+    let h = (state.flow ? '<button class="chip" data-backflow="1">← Về luồng “' + esc(flowsById.get(state.flow).title) + "”</button>" : "") +
+      '<h2 style="margin:6px 0 4px;font-size:16px;word-break:break-word">' + esc(n.label) + "</h2>" +
+      '<span class="pill l-' + n.lane + '">' + esc(lane) + '</span><span class="pill" style="--c:var(--muted)">' + esc(KIND[n.kind] || n.kind) + "</span>" +
+      (n.lang ? '<span class="pill" style="--c:var(--muted)">' + esc(n.lang) + (n.lines ? " · " + n.lines + " dòng" : "") + "</span>" : "") +
+      (n.kind === "external" ? "" : '<div class="path">' + esc(n.id.replace(/^api:/, "")) + ' <button class="chip" data-copy="' + esc(n.id) + '">chép</button></div>') +
+      (n.desc ? "<p>" + esc(n.desc) + "</p>" : "");
+    if (n.kind === "endpoint") {
+      h += '<div class="card"><b>Điểm vào/ra dữ liệu</b><div class="data"><span>Cần token</span><span>' + (n.auth ? "Có (user_id lấy từ token)" : "Không") +
+        "</span><span>Hàm xử lý</span><span><code>" + esc(n.handler) + "()</code></span><span>Router</span><span>" + chip(n.router) + "</span></div></div>";
+    }
+    n.tables.forEach(t => {
+      h += '<div class="card"><b>Bảng ' + esc(t.name) + '</b> <span style="font-size:11px;color:var(--muted)">(' + (t.where === "server" ? "server" : "trên máy") + ")</span>" +
+        '<div class="path" style="margin-top:4px">' + t.cols.map(esc).join("<br>") + "</div>" +
+        (t.used_by && t.used_by.length ? '<div style="margin-top:4px">' + t.used_by.map(chip).join("") + "</div>" : "") + "</div>";
+    });
+    if (n.env.length) h += "<h3>Biến môi trường / cấu hình</h3>" + n.env.map(e => "<code>" + esc(e) + "</code> ").join("");
+    if (n.pkgs.length) h += "<h3>Thư viện ngoài đang dùng</h3>" + n.pkgs.map(e => "<code>" + esc(e) + "</code> ").join("");
+    if (n.symbols.length) h += "<details><summary>Lớp / hàm / provider (" + n.symbols.length + ")</summary><ul class='sym'>" +
+      n.symbols.map(s => "<li><code>" + esc(s.name) + "</code> <i>" + esc(s.kind) + "</i>" + (s.doc ? "<br><span style='color:var(--muted)'>" + esc(s.doc) + "</span>" : "") + "</li>").join("") + "</ul></details>";
+    h += relList("Nó gọi / dùng", out.get(n.id) || [], e => e.t) + relList("Được dùng bởi", inn.get(n.id) || [], e => e.s);
+    const ins = [];
+    D.flows.forEach(f => f.steps.forEach((s, i) => { if (s.node === n.id) ins.push({ f: f, s: s, i: i }); }));
+    if (ins.length) {
+      h += "<h3>Tham gia các luồng (" + ins.length + ")</h3>";
+      ins.forEach(x => {
+        h += '<div class="card"><button class="chip" data-flow="' + x.f.id + '" data-step="' + x.i + '">' + x.f.icon + " " + esc(x.f.title) + " · bước " + (x.i + 1) + "</button><br><b>" + esc(x.s.title) + "</b>" +
+          (x.s.detail ? "<br>" + esc(x.s.detail) : "") + ((x.s.in || x.s.out) ? '<div class="data">' + (x.s.in ? "<span>Dữ liệu vào</span><span>" + esc(x.s.in) + "</span>" : "") + (x.s.out ? "<span>Dữ liệu ra</span><span>" + esc(x.s.out) + "</span>" : "") + "</div>" : "") + "</div>";
+      });
+    }
+    return h;
+  }
+  function flowPanel(f) {
+    return '<h2 style="margin:0 0 4px;font-size:16px">' + f.icon + " " + esc(f.title) + "</h2><p style='color:var(--muted);margin:0 0 6px'>" + esc(f.summary) + "</p>" +
+      '<ol class="steps">' + f.steps.map((s, i) => '<li data-step="' + i + '" class="' + (i === state.step ? "on" : "") + '"><span class="n">' + (i + 1) + "</span><div><b>" + esc(s.title) +
+        "</b><small>" + esc(nodes.get(s.node).label) + "</small></div></li>").join("") + "</ol>";
+  }
+  function renderPlayer() {
+    const pl = $("#player"), f = state.flow ? flowsById.get(state.flow) : null;
+    pl.classList.toggle("on", !!f); if (!f) return;
+    const s = f.steps[state.step], n = nodes.get(s.node);
+    $("#pl-title").textContent = f.icon + " " + f.title + " — " + s.title;
+    $("#pl-count").textContent = (state.step + 1) + " / " + f.steps.length;
+    $("#pl-detail").innerHTML = "<b>" + esc(n.label) + "</b>" + (s.detail ? " — " + esc(s.detail) : "");
+    $("#pl-io").innerHTML = (s.in ? "<span>Dữ liệu vào: <b>" + esc(s.in) + "</b></span>" : "") + (s.out ? "<span>Dữ liệu ra: <b>" + esc(s.out) + "</b></span>" : "");
+  }
+  function renderSide() {
+    $("#flows").innerHTML = D.flows.map(f => '<button class="flowbtn' + (state.flow === f.id ? " on" : "") + '" data-flow="' + f.id + '">' + f.icon + " <b>" + esc(f.title) + "</b><small>" + esc(f.summary) + "</small></button>").join("");
+    $("#lanes").innerHTML = D.lanes.map(l => '<label class="lane-row"><input type="checkbox" data-lane="' + l.id + '"' + (state.lanes.has(l.id) ? " checked" : "") +
+      '><span class="dot l-' + l.id + '" style="background:var(--c)"></span>' + esc(l.title) + "</label>").join("");
+  }
+
+  // ---------------------------------------------------------------- sự kiện giao diện
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-go],[data-flow],[data-step],[data-lane],[data-copy],[data-clearhl],[data-backflow],[data-tab],[data-showlib]");
+    if (!t) return;
+    if (t.dataset.lane) return;
+    if (t.dataset.tab) { goTab(t.dataset.tab); return; }
+    if (t.dataset.copy) { try { navigator.clipboard.writeText(t.dataset.copy); t.textContent = "đã chép"; } catch (x) {} return; }
+    if (t.dataset.clearhl) { state.hl = null; refresh(); return; }
+    if (t.dataset.backflow) { state.sel = null; refresh(); return; }
+    if (t.dataset.showlib != null) {
+      const d = D.deps[+t.dataset.showlib]; state.hl = new Set(d.used_by); state.hlName = d.name; state.flow = null; state.sel = null; goTab("graph"); refresh(); fit(); return;
+    }
+    if (t.dataset.flow) { startFlow(t.dataset.flow, t.dataset.step ? +t.dataset.step : 0); goTab("graph"); return; }
+    if (t.dataset.step != null && state.flow) { setStep(+t.dataset.step); return; }
+    if (t.dataset.go) { goTab("graph"); selectNode(t.dataset.go, true); }
+  });
+  document.addEventListener("change", e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.lane) { if (t.checked) state.lanes.add(t.dataset.lane); else state.lanes.delete(t.dataset.lane); refresh(); }
+    if (t.id === "showAll") { state.showAll = t.checked; refresh(); }
+  });
+  $("#pl-prev").onclick = () => setStep(state.step - 1); $("#pl-next").onclick = () => setStep(state.step + 1);
+  $("#pl-auto").onclick = toggleAuto; $("#pl-close").onclick = stopFlow;
+  $("#q").addEventListener("input", e => { state.q = e.target.value; refresh(); });
+  $("#q").addEventListener("keydown", e => {
+    if (e.key === "Enter") { const q = state.q.trim().toLowerCase(); const m = D.nodes.find(n => matchNode(n, q)); if (m) { goTab("graph"); selectNode(m.id, true); } }
+  });
+  document.addEventListener("keydown", e => {
+    const tag = (document.activeElement && document.activeElement.tagName) || "";
+    if (e.key === "/" && tag !== "INPUT") { e.preventDefault(); $("#q").focus(); return; }
+    if (e.key === "Escape") { $("#q").blur(); if (state.q) { state.q = ""; $("#q").value = ""; } else if (state.sel) state.sel = null; else if (state.hl) state.hl = null; else if (state.flow) { stopFlow(); return; } refresh(); return; }
+    if (tag === "INPUT") return;
+    if (state.flow && e.key === "ArrowRight") setStep(state.step + 1);
+    if (state.flow && e.key === "ArrowLeft") setStep(state.step - 1);
+  });
+
+  // ---------------------------------------------------------------- tab: thư viện / API
+  function renderLibs() {
+    const tb = $("#libtable tbody"); let h = "";
+    D.deps.forEach((d, i) => {
+      h += '<tr class="clickable" data-toggle="' + i + '"><td><b>' + esc(d.name) + "</b></td><td><code>" + esc(d.ver) + "</code></td><td>" + esc(d.kind) + "</td><td>" + esc(d.note) + "</td><td>" + d.used_by.length + "</td></tr>" +
+        '<tr class="hidden" id="lib-' + i + '"><td colspan="5">' + (d.used_by.length ? d.used_by.map(chip).join("") + '<br><button class="chip" data-showlib="' + i + '">Làm nổi bật trong sơ đồ</button>' :
+          '<span style="color:var(--muted)">Không tìm thấy file nào import trực tiếp (có thể là thư viện hạ tầng hoặc dùng gián tiếp).</span>') + "</td></tr>";
+    });
+    tb.innerHTML = h;
+    tb.addEventListener("click", e => {
+      if (e.target.closest("[data-go],[data-showlib]")) return;
+      const r = e.target.closest("tr[data-toggle]"); if (r) $("#lib-" + r.dataset.toggle).classList.toggle("hidden");
+    });
+  }
+  function renderApi() {
+    const eps = D.nodes.filter(n => n.kind === "endpoint").sort((a, b) => a.label.localeCompare(b.label));
+    $("#eptable tbody").innerHTML = eps.map(n => '<tr class="clickable" data-go="' + esc(n.id) + '"><td><b>' + esc(n.routes[0].method) + "</b></td><td><code>" + esc(n.label.replace(/^\w+ /, "")) +
+      "</code></td><td><code>" + esc(n.handler) + "()</code></td><td>" + (n.auth ? "Có" : "Không") + "</td><td>" + esc(n.desc) + "</td></tr>").join("");
+    const seen = new Set(); let h = "";
+    ["ext:server_db", "ext:local_db"].forEach(id => nodes.get(id).tables.forEach(t => {
+      const key = id + t.name; if (seen.has(key)) return; seen.add(key);
+      h += '<div class="card"><b>' + esc(t.name) + '</b> <span style="font-size:11px;color:var(--muted)">' + (t.where === "server" ? "server · SQLite" : "trên máy · SQLite") + '</span><div class="path" style="margin:4px 0">' +
+        t.cols.map(esc).join("<br>") + "</div>" + (t.defined_in ? "<div style='font-size:12px;color:var(--muted)'>định nghĩa ở:</div>" + chip(t.defined_in) : "") +
+        (t.used_by && t.used_by.length ? "<div style='font-size:12px;color:var(--muted);margin-top:4px'>file nhắc tới bảng:</div>" + t.used_by.map(chip).join("") : "") + "</div>";
+    }));
+    $("#tables").innerHTML = h;
+  }
+
+  // ---------------------------------------------------------------- hash (chia sẻ trạng thái)
+  function updateHash() {
+    let h = "";
+    if (state.flow) h = "#f=" + state.flow + "&s=" + (state.step + 1); else if (state.sel) h = "#n=" + encodeURIComponent(state.sel);
+    try { history.replaceState(null, "", h || location.pathname + location.search); } catch (e) {}
+  }
+  // ⚠️ Lưu hash NGAY khi tải: lần vẽ đầu (refresh → updateHash) sẽ xoá hash khỏi địa chỉ.
+  const INIT_HASH = location.hash.slice(1);
+  function readHash() {
+    const m = INIT_HASH; if (!m) return;
+    const p = new URLSearchParams(m);
+    if (p.get("t") && ["graph", "libs", "api"].includes(p.get("t"))) goTab(p.get("t"));
+    if (p.get("f") && flowsById.has(p.get("f"))) startFlow(p.get("f"), Math.max(0, (+p.get("s") || 1) - 1));
+    else if (p.get("n") && nodes.has(p.get("n"))) selectNode(p.get("n"), true);
+  }
+
+  // ---------------------------------------------------------------- khởi tạo
+  const s = D.stats;
+  $("#stats").innerHTML = [["file", s.files], ["dòng", s.lines.toLocaleString("vi-VN")], ["endpoint", s.endpoints], ["bảng", s.tables], ["luồng", s.flows]]
+    .map(x => '<span class="chipstat"><b>' + x[1] + "</b> " + x[0] + "</span>").join("");
+  renderLibs(); renderApi(); renderSide(); applyView(); fit(); refresh(); readHash();
+  window.__MAP__ = { state: state, selectNode: selectNode, startFlow: startFlow, nodes: nodes };   // phục vụ kiểm thử
+})();
+</script>
+</body>
+</html>

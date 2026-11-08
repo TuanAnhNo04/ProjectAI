@@ -58,3 +58,21 @@ ProjectAI-main/
 # Báo cáo coverage sinh ra khi chạy `flutter test --coverage` (Day 14).
 # Chỉ là số liệu tạm để đo, không track (số liệu đã chốt trong docs/TESTING.md).
 coverage/
+
+# Ảnh thuốc của bạn (đồng bộ sang máy ảo bằng tools/sync_images.ps1) — không đưa vào git
+anh_thuoc/
+
+# --- Bí mật: không bao giờ commit (AGENTS.md mục 1) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# --- Trạng thái máy dev ---
+tools/.last_installed_apk_time
+hs_err_pid*.log

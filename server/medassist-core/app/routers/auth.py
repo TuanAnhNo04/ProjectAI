@@ -13,7 +13,7 @@ import secrets
 
 from fastapi import APIRouter, Depends, Request, Response
 
-from app.deps import get_repository
+from app.deps import current_user_id, get_repository
 from app.errors import (
     CODE_RATE_LIMITED,
     CODE_UNAUTHORIZED,
@@ -27,13 +27,16 @@ from app.jwt_tokens import (
     issue_access_token,
     issue_refresh_token,
 )
+from app.observability import audit, get_usage_tracker
 from app.rate_limit import (
     RateLimitExceeded,
     get_limiter,
     login_rate_key,
 )
+from app.sessions import get_session_store
 from app.schemas import (
     AuthResponse,
+    DeleteAccountRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -155,6 +158,7 @@ def login(
     stored_hash = repo.get_password_hash(body.username)
 
     if user is None or stored_hash is None or not verify_password(body.password, stored_hash):
+        audit("login_failure", "denied")
         raise APIError(
             status_code=401,
             code=CODE_UNAUTHORIZED,
@@ -163,6 +167,7 @@ def login(
 
     # Thành công -> xoá bộ đếm (đừng phạt người dùng nhập đúng).
     limiter.reset(key)
+    audit("login_success", "ok")
     response.headers["X-RateLimit-Remaining"] = str(limiter.attempts_left(key))
     return _issue_session(repo, user)
 
@@ -196,6 +201,7 @@ def refresh(
         family_id = row["family_id"]
         if family_id:
             repo.revoke_token_family(family_id)
+        audit("refresh_token_reuse", "denied")
         raise APIError(
             status_code=401,
             code=CODE_UNAUTHORIZED,
@@ -237,6 +243,76 @@ def logout(
     Trả 204 kể cả khi token không tồn tại — client không cần phân biệt.
     """
     repo.revoke_refresh_token(hash_token(body.refresh_token))
+
+
+@router.get("/me", response_model=UserResponse, summary="Thông tin tài khoản đang đăng nhập")
+def me(
+    user_id: int = Depends(current_user_id),
+    repo: SQLiteRepository = Depends(get_repository),
+) -> UserResponse:
+    """Trả dữ liệu của **chính người gọi** (id lấy từ token, không nhận từ client).
+
+    App gọi khi khôi phục phiên: hiện tên người dùng và xác nhận phiên còn hợp lệ. Token
+    còn hạn nhưng tài khoản đã bị xoá thì trả 401 (không coi là còn phiên).
+    """
+    user = repo.get_user_by_id(user_id)
+    if user is None:
+        raise APIError(
+            status_code=401,
+            code=CODE_UNAUTHORIZED,
+            message="Token không hợp lệ hoặc đã hết hạn.",
+        )
+    return user
+
+
+@router.post(
+    "/delete-account",
+    status_code=204,
+    summary="Xoá tài khoản và toàn bộ dữ liệu (không thể hoàn tác)",
+)
+def delete_account(
+    body: DeleteAccountRequest,
+    user_id: int = Depends(current_user_id),
+    repo: SQLiteRepository = Depends(get_repository),
+) -> None:
+    """Quyền được quên (quyết định D5): xoá user, lịch sử, phiên đăng nhập, hội thoại.
+
+    ⚠️ Cần **cả** token **và** mật khẩu: access token sống 15 phút, nếu bị lấy trộm thì
+    kẻ cắp không được phép xoá vĩnh viễn tài khoản chỉ bằng token. Thử sai mật khẩu bị
+    giới hạn tốc độ như đăng nhập; sai thì trả cùng một thông báo chung.
+
+    Hồ sơ sức khoẻ và lịch nhắc nằm **trong máy người dùng** (xem `docs/PRIVACY.md`),
+    server không giữ nên không có gì để xoá ở đó.
+    """
+    # Khoá theo `user_id` (đã xác thực), không theo IP: chặn dò mật khẩu từ nhiều IP.
+    key = f"delete-account:{user_id}"
+    limiter = get_limiter()
+    try:
+        limiter.check(key)
+    except RateLimitExceeded as exc:
+        audit("account_delete_denied", "denied")
+        raise APIError(
+            status_code=429,
+            code=CODE_RATE_LIMITED,
+            message="Thử quá nhiều lần. Vui lòng thử lại sau.",
+            detail={"retry_after_seconds": exc.retry_after_seconds},
+        ) from exc
+
+    username = _username_for_user(repo, user_id)
+    stored_hash = repo.get_password_hash(username) if username else None
+    if stored_hash is None or not verify_password(body.password, stored_hash):
+        audit("account_delete_denied", "denied")
+        raise APIError(
+            status_code=401,
+            code=CODE_UNAUTHORIZED,
+            message="Mật khẩu không đúng.",
+        )
+
+    repo.delete_user_and_data(user_id)
+    get_session_store().clear_user(user_id)
+    get_usage_tracker().forget(user_id)
+    limiter.reset(key)
+    audit("account_deleted", "ok")
 
 
 @router.post(

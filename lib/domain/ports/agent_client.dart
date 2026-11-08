@@ -39,6 +39,12 @@ final class Citation extends AgentEvent {
     required this.documentId,
     required this.quote,
     this.title,
+    this.source = '',
+    this.isAuthoritative = false,
+    this.sourceUrl = '',
+    this.retrievedAt = '',
+    this.license = '',
+    this.reviewedBy = '',
   });
 
   /// Mã tài liệu nguồn, vd `leaflet-paracetamol-01`.
@@ -49,18 +55,77 @@ final class Citation extends AgentEvent {
 
   final String? title;
 
+  /// Tên nguồn + metadata xuất xứ. Server cũ không gửi -> chuỗi rỗng (không rõ).
+  final String source;
+  final bool isAuthoritative;
+  final String sourceUrl;
+  final String retrievedAt;
+  final String license;
+  final String reviewedBy;
+
   @override
   String toString() => 'Citation($documentId)';
 }
 
+/// Cảnh báo khẩn cấp — server khớp triệu chứng nguy hiểm; luôn tới TRƯỚC token.
+final class EmergencyAlert extends AgentEvent {
+  const EmergencyAlert({required this.matched, required this.message});
+
+  /// Các cụm triệu chứng đã khớp (vd `đau ngực`).
+  final List<String> matched;
+
+  /// Lời khuyên tiếng Việt do server soạn.
+  final String message;
+
+  @override
+  String toString() => 'EmergencyAlert(${matched.length})';
+}
+
+/// Ngữ cảnh sức khoẻ gửi kèm — CHỈ khi hồ sơ có consent VÀ đã đồng ý AI đám mây.
+class HealthContext {
+  const HealthContext({
+    this.conditions = const [],
+    this.allergies = const [],
+    this.recentSymptoms = const [],
+  });
+
+  final List<String> conditions;
+  final List<String> allergies;
+
+  /// Triệu chứng 14 ngày gần nhất (≤5) — CHỈ khi bật trí nhớ + hồ sơ có consent.
+  /// Máy chủ chỉ dùng trong lượt hỏi này, không lưu.
+  final List<String> recentSymptoms;
+
+  bool get isEmpty =>
+      conditions.isEmpty && allergies.isEmpty && recentSymptoms.isEmpty;
+}
+
+/// Server vừa nhận ra triệu chứng trong câu hỏi (đến trước token, chỉ với ca
+/// không khẩn cấp). [recurring] = lặp lại so với `recent_symptoms` gửi lên.
+final class SymptomNoted extends AgentEvent {
+  const SymptomNoted({required this.terms, this.recurring = false});
+
+  final List<String> terms;
+  final bool recurring;
+
+  @override
+  String toString() => 'SymptomNoted(${terms.length}, $recurring)';
+}
+
 /// Luồng kết thúc bình thường.
 final class Done extends AgentEvent {
-  const Done({this.sessionId});
+  const Done({this.sessionId, this.mode = 'extractive'});
 
   final String? sessionId;
 
+  /// `extractive` (trich nguyen van) | `cloud` (Claude dien dat lai, da qua
+  /// kiem tra bam nguon). Server cu khong gui -> `extractive`.
+  final String mode;
+
+  bool get isCloud => mode == 'cloud';
+
   @override
-  String toString() => 'Done($sessionId)';
+  String toString() => 'Done($sessionId, $mode)';
 }
 
 /// Lỗi giữa chừng — **mang [AppException] đã có thông báo tiếng Việt**.
@@ -84,10 +149,19 @@ abstract interface class AgentClient {
   /// `sessionId` giữ ngữ cảnh giữa các lượt — đổi sessionId là bắt đầu hội
   /// thoại mới. Sự kiện luôn kết thúc bằng [Done] hoặc [Failure].
   ///
+  /// [currentMedications] (Day 27): danh sách thuốc đang dùng từ hồ sơ local —
+  /// gửi kèm để agent cảnh báo tương tác. Không lưu server.
+  ///
+  /// [cloudAiConsent]: người dùng đã đồng ý dùng AI đám mây (mặc định tắt).
+  /// [healthContext]: bệnh nền/dị ứng, `null` = không gửi.
+  ///
   /// Lỗi **trước khi** mở được stream (mất mạng, 401) được ném ra như
   /// `AppException`; lỗi **sau** đó thì đến dưới dạng event [Failure].
   Stream<AgentEvent> chat({
     required String sessionId,
     required String message,
+    List<String> currentMedications,
+    bool cloudAiConsent,
+    HealthContext? healthContext,
   });
 }

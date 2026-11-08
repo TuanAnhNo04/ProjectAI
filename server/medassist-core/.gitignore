@@ -8,3 +8,7 @@ __pycache__/
 *.sqlite3
 
 # ⚠️ `openapi.json` CÓ commit (hợp đồng API cho client review) — không ignore.
+# Dữ liệu THẬT (thuốc, CSDL, bản sao lưu) — không bao giờ đưa vào git
+data/real/
+*.real.csv
+*.db.bak-*

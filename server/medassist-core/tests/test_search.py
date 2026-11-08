@@ -94,3 +94,24 @@ def test_normalize_bo_dau_va_ha_chu_thuong():
     assert normalize("Paracetamol 500mg") == "paracetamol 500mg"
     assert normalize("Đau Mỗi") == "dau moi"
     assert normalize("  A   B  ") == "a b"
+
+# ------------------------------------------------- danh mục cho OCR trên máy ---
+
+
+def test_danh_muc_thuoc_cong_khai_va_phan_trang(seeded_client):
+    first = seeded_client.get("/v1/medicines", params={"limit": 3, "offset": 0})
+    assert first.status_code == 200
+    body = first.json()
+    assert len(body["results"]) == 3
+    assert body["total"] >= 3
+
+    rest = seeded_client.get("/v1/medicines", params={"limit": 100, "offset": 3})
+    assert rest.status_code == 200
+    names = [m["name"] for m in body["results"] + rest.json()["results"]]
+    assert len(names) == body["total"]
+    assert len(set(names)) == len(names)  # không trùng giữa các trang
+
+
+def test_danh_muc_thuoc_gioi_han_limit(seeded_client):
+    assert seeded_client.get("/v1/medicines", params={"limit": 101}).status_code == 422
+    assert seeded_client.get("/v1/medicines", params={"offset": -1}).status_code == 422

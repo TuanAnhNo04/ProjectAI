@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from app.provenance import clean_date, clean_text
 from app.sqlite_repository import normalize
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -40,6 +41,10 @@ class IngestedDrug:
     ingredients: list[str] = field(default_factory=list)
     source: str = DEV_SOURCE_LABEL
     is_authoritative: bool = False
+    source_url: str | None = None
+    retrieved_at: str | None = None
+    license: str | None = None
+    reviewed_by: str | None = None
 
 
 def split_ingredients(composition: str | None) -> list[str]:
@@ -97,6 +102,135 @@ def load_csv(path: str | Path | None = None) -> list[IngestedDrug]:
     return drugs
 
 
+#: Tên cột mặc định (bộ dữ liệu thuốc của app gốc). Đổi bằng `--col` khi nguồn khác tên cột.
+DEFAULT_COLUMNS = {
+    "name": "Medicine_Name",
+    "composition": "Composition",
+    "uses": "Uses",
+    "side_effects": "Side_effects",
+    "manufacturer": "Manufacturer",
+}
+
+
+@dataclass
+class IngestReport:
+    """Thống kê một lần nạp — **chỉ số liệu**, tuyệt đối không chứa nội dung dòng.
+
+    ⚠️ Dữ liệu thật có thể nhạy cảm/bản quyền; báo cáo này được in ra màn hình và có
+    thể bị dán vào chat hay log, nên không bao giờ mang tên thuốc hay văn bản nguồn.
+    """
+
+    rows_read: int = 0
+    imported: int = 0
+    skipped_no_name: int = 0
+    duplicates: int = 0
+    truncated_fields: int = 0
+    missing_columns: list[str] = field(default_factory=list)
+    columns_found: list[str] = field(default_factory=list)
+
+
+class IngestError(ValueError):
+    """File nguồn không dùng được (thiếu cột bắt buộc, không đọc được...)."""
+
+
+def load_csv_mapped(
+    path: str | Path,
+    columns: dict[str, str] | None = None,
+    *,
+    source: str,
+    authoritative: bool = False,
+    dedupe: bool = True,
+    source_url: str | None = None,
+    retrieved_at: str | None = None,
+    license: str | None = None,
+    reviewed_by: str | None = None,
+    max_field_len: int = 4000,
+) -> tuple[list[IngestedDrug], IngestReport]:
+    """Đọc CSV danh mục thuốc **thật** theo ánh xạ cột, kèm báo cáo.
+
+    - `source` bắt buộc (nhãn trỏ về đúng nguồn, ghi vào từng bản ghi).
+    - Không tự sinh/sửa nội dung y khoa: ô rỗng -> `None`; ô quá dài bị cắt và đếm.
+    - Dòng không tên bị bỏ; trùng (cùng tên + thành phần sau chuẩn hoá) bị bỏ nếu `dedupe`.
+    - Đọc `utf-8-sig` để chịu được file Excel có BOM.
+    """
+    if not source or not source.strip():
+        raise IngestError("Thiếu `source`: mọi bản ghi phải trỏ về một nguồn cụ thể.")
+    if source_url and not source_url.strip().lower().startswith("https://"):
+        raise IngestError("--source-url phải là https.")
+    if authoritative and not (reviewed_by and reviewed_by.strip()):
+        raise IngestError("Nguồn lâm sàng (authoritative) cần reviewed_by.")
+    prov = {
+        "source_url": (source_url or "").strip() or None,
+        "retrieved_at": clean_date(retrieved_at),
+        "license": clean_text(license),
+        "reviewed_by": clean_text(reviewed_by),
+    }
+    if retrieved_at and not prov["retrieved_at"]:
+        raise IngestError("--retrieved-at phải là ngày ISO (YYYY-MM-DD).")
+    csv_path = Path(path)
+    if not csv_path.is_file():
+        raise IngestError(f"Không thấy file: {csv_path.name}")
+
+    cols = {**DEFAULT_COLUMNS, **(columns or {})}
+    report = IngestReport()
+    drugs: list[IngestedDrug] = []
+    seen: set[tuple[str, str]] = set()
+
+    try:
+        with csv_path.open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            report.columns_found = list(reader.fieldnames or [])
+            report.missing_columns = [
+                f"{key}={col}" for key, col in cols.items() if col not in report.columns_found
+            ]
+            if cols["name"] not in report.columns_found:
+                raise IngestError(
+                    f"Thiếu cột tên thuốc '{cols['name']}'. Cột có trong file: "
+                    + ", ".join(report.columns_found or ["(không có)"])
+                )
+            for row in reader:
+                report.rows_read += 1
+                name = _to_text(row.get(cols["name"]))
+                if not name:
+                    report.skipped_no_name += 1
+                    continue
+
+                def field_of(key: str) -> str | None:
+                    text = _to_text(row.get(cols[key]))
+                    if text and len(text) > max_field_len:
+                        report.truncated_fields += 1
+                        return text[:max_field_len]
+                    return text
+
+                composition = field_of("composition")
+                if dedupe:
+                    key = (normalize(name), normalize(composition or ""))
+                    if key in seen:
+                        report.duplicates += 1
+                        continue
+                    seen.add(key)
+                drugs.append(
+                    IngestedDrug(
+                        name=name[:max_field_len],
+                        composition=composition,
+                        uses=field_of("uses"),
+                        side_effects=field_of("side_effects"),
+                        manufacturer=field_of("manufacturer"),
+                        ingredients=split_ingredients(composition),
+                        source=source.strip(),
+                        is_authoritative=authoritative,
+                        **prov,
+                    )
+                )
+    except UnicodeDecodeError as exc:
+        raise IngestError("File không phải UTF-8. Lưu lại dạng CSV UTF-8 rồi thử lại.") from exc
+    except csv.Error as exc:
+        raise IngestError(f"File CSV hỏng: {type(exc).__name__}") from exc
+
+    report.imported = len(drugs)
+    return drugs, report
+
+
 def has_interaction_data() -> bool:
     """Co bang tuong tac thuoc DANG TIN hay khong?
 
@@ -121,6 +255,10 @@ def to_rows(drugs: list[IngestedDrug]) -> list[dict[str, Any]]:
             "ingredients": json.dumps(d.ingredients),
             "source": d.source,
             "is_authoritative": d.is_authoritative,
+            "source_url": d.source_url,
+            "retrieved_at": d.retrieved_at,
+            "license": d.license,
+            "reviewed_by": d.reviewed_by,
         }
         for d in drugs
     ]

@@ -87,13 +87,15 @@ void main() {
     });
   });
 
-  test('switch trên AgentEvent xử lý đủ 5 nhánh', () {
+  test('switch trên AgentEvent xử lý đủ 7 nhánh', () {
     // Nhờ `sealed`, thêm biến thể mới sẽ khiến test này KHÔNG còn biên dịch
     // — đúng ý muốn (bắt buộc UI xử lý đủ).
     final events = <AgentEvent>[
       const TokenDelta('a'),
       const ToolCallStarted(name: 'search_drug'),
       const Citation(documentId: 'd', quote: 'q'),
+      const EmergencyAlert(matched: ['a'], message: 'm'),
+      const SymptomNoted(terms: ['ho']),
       const Done(sessionId: 's'),
       const Failure(
         AppException(kind: AppExceptionKind.network, message: 'mất mạng'),
@@ -107,13 +109,23 @@ void main() {
           TokenDelta() => 'token',
           ToolCallStarted() => 'tool',
           Citation() => 'citation',
+          EmergencyAlert() => 'emergency',
+          SymptomNoted() => 'symptom',
           Done() => 'done',
           Failure() => 'failure',
         },
       );
     }
 
-    expect(seen, <String>['token', 'tool', 'citation', 'done', 'failure']);
+    expect(seen, <String>[
+      'token',
+      'tool',
+      'citation',
+      'emergency',
+      'symptom',
+      'done',
+      'failure'
+    ]);
   });
 
   group('AgentClient — hợp đồng của adapter', () {
@@ -150,6 +162,9 @@ class _FakeAgentClient implements AgentClient {
   Stream<AgentEvent> chat({
     required String sessionId,
     required String message,
+    List<String> currentMedications = const [],
+    bool cloudAiConsent = false,
+    HealthContext? healthContext,
   }) {
     lastSession = sessionId;
     lastMessage = message;

@@ -49,6 +49,10 @@ class SessionStore(Protocol):
         """Xoá phiên của `user_id`. Phiên không thuộc -> `False`."""
         ...
 
+    def clear_user(self, user_id: int) -> int:
+        """Xoá **mọi** phiên của `user_id` (xoá tài khoản); trả số phiên đã xoá."""
+        ...
+
 
 class InMemorySessionStore:
     """Bản chạy được ngay, không cần Redis.
@@ -90,6 +94,12 @@ class InMemorySessionStore:
             return False
         del self._data[key]
         return True
+
+    def clear_user(self, user_id: int) -> int:
+        keys = [k for k in self._data if k[0] == user_id]
+        for key in keys:
+            del self._data[key]
+        return len(keys)
 
     def count_sessions(self) -> int:
         """Chỉ dùng cho test/giám sát — **không** đưa ra API công khai."""

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:image_processing_app/core/theme/app_theme.dart';
 import 'package:image_processing_app/l10n/generated/app_localizations.dart';
 
 /// Banner "đang ngoại tuyến" dùng chung cho các màn có cache (Day 12).
@@ -28,37 +29,39 @@ class OfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final neu = NeuTheme.of(context);
     final stamp = formatCachedAt(cachedAt);
     final message = stamp.isEmpty ? l10n.offline : l10n.offlineUpdated(stamp);
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8.0),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: const Color(0xFFFFC107)),
+        color: neu.accentSoft,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.wifi_off,
-            size: 18,
-            color: Color(0xFF3E2723),
-          ),
-          const SizedBox(width: 8),
+          Icon(Icons.wifi_off, size: 20, color: neu.accent),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF3E2723),
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: neu.textStrong,
+                  ),
             ),
           ),
+          const SizedBox(width: 8),
           TextButton(
             onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: neu.accent,
+              minimumSize: const Size(48, 48),
+              shape: const StadiumBorder(),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             child: Text(l10n.retry),
           ),
         ],

@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.deps import current_user_id, get_repository
 from app.errors import CODE_NOT_FOUND, APIError
+from app.observability import audit
 from app.schemas import (
     AnalyzeResponse,
     HistoryCreateRequest,
@@ -51,6 +52,25 @@ def search(
     """
     limit, offset = _page(limit, offset)
     return repo.search_medicines(name, limit, offset)
+
+
+@router.get(
+    "/medicines",
+    response_model=SearchResponse,
+    summary="Danh mục thuốc (cho nhận diện OCR trên máy)",
+)
+def list_medicines(
+    limit: int = Query(default=MAX_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+    repo: SQLiteRepository = Depends(get_repository),
+) -> SearchResponse:
+    """Danh mục thuốc phân trang, **công khai** — app tải về để OCR không cần mạng.
+
+    ⚠️ Chỉ là dữ liệu danh mục (tên, thành phần…), không gắn người dùng nào và không
+    ghi log câu truy vấn. Mỗi bản ghi mang `source`/`is_authoritative` như `/search`.
+    """
+    limit, offset = _page(limit, offset)
+    return repo.list_medicines(limit, offset)
 
 
 # --- Phân tích ảnh (công khai ở Day 15) -------------------------------------
@@ -123,6 +143,7 @@ def delete_history(
             code=CODE_NOT_FOUND,
             message="Không tìm thấy bản ghi.",
         )
+    audit("history_deleted", "ok")
 
 
 @router.post(

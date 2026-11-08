@@ -12,9 +12,10 @@ Về bảo mật:
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +50,11 @@ CREATE TABLE IF NOT EXISTS medicines (
     poor_review      REAL,
     source           TEXT,
     is_authoritative INTEGER NOT NULL DEFAULT 0,
-    updated_at       TEXT
+    updated_at       TEXT,
+    source_url       TEXT,
+    retrieved_at     TEXT,
+    license          TEXT,
+    reviewed_by      TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_medicines_normalized ON medicines(normalized_name);
@@ -156,6 +161,10 @@ def _to_medicine(row: sqlite3.Row) -> MedicineResponse:
         average_review_percent=row["average_review"],
         poor_review_percent=row["poor_review"],
         source=row["source"],
+        source_url=row["source_url"],
+        retrieved_at=row["retrieved_at"],
+        license=row["license"],
+        reviewed_by=row["reviewed_by"],
         is_authoritative=bool(row["is_authoritative"]),
         updated_at=(
             datetime.fromisoformat(row["updated_at"]) if row["updated_at"] else None
@@ -180,6 +189,9 @@ class SQLiteRepository:
     def __init__(self, db_path: str | Path = ":memory:") -> None:
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        # Chỉ mục truy hồi (xem `candidate_medicines`); `_med_gen` tăng mỗi lần ta ghi.
+        self._med_index: tuple[tuple[int, int], tuple[list[MedicineResponse], dict[str, list[int]]]] | None = None
+        self._med_gen = 0
         # `foreign_keys` mặc định **TẮT** trong SQLite -> phải bật thủ công.
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.executescript(SCHEMA)
@@ -200,6 +212,10 @@ class SQLiteRepository:
         columns = {
             row["name"] for row in self._conn.execute("PRAGMA table_info(refresh_tokens)")
         }
+        med_cols = {row["name"] for row in self._conn.execute("PRAGMA table_info(medicines)")}
+        for col in ("source_url", "retrieved_at", "license", "reviewed_by"):
+            if med_cols and col not in med_cols:
+                self._conn.execute(f"ALTER TABLE medicines ADD COLUMN {col} TEXT DEFAULT NULL")
         if "family_id" not in columns:
             self._conn.execute(
                 "ALTER TABLE refresh_tokens ADD COLUMN family_id TEXT NOT NULL DEFAULT ''"
@@ -236,6 +252,12 @@ class SQLiteRepository:
         ).fetchone()
         return _to_user(row) if row else None
 
+    def get_user_by_id(self, user_id: int) -> UserResponse | None:
+        row = self._conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        return _to_user(row) if row else None
+
     def get_password_hash(self, username: str) -> str | None:
         """Lấy hash để xác thực. Route dùng, **không** trả ra ngoài."""
         row = self._conn.execute(
@@ -255,8 +277,12 @@ class SQLiteRepository:
                 "WHERE normalized_name LIKE ? OR IFNULL(ingredients, '') LIKE ?"
             )
             args = (pattern, pattern)
+            # Bản ghi CÓ công dụng/tác dụng phụ lên trước: danh mục lớn (sổ đăng ký
+            # chỉ có tên/thành phần) có nhiều sản phẩm cùng tên mà không có thông tin.
             rows = self._conn.execute(
-                f"SELECT * FROM medicines {where} ORDER BY name LIMIT ? OFFSET ?",
+                f"SELECT * FROM medicines {where} ORDER BY"
+                " (IFNULL(uses, '') = '' AND IFNULL(side_effects, '') = ''), name"
+                " LIMIT ? OFFSET ?",
                 (*args, limit, offset),
             ).fetchall()
             total = self._conn.execute(
@@ -291,15 +317,20 @@ class SQLiteRepository:
             "side_effects",
             "manufacturer",
             "source",
+            "source_url",
+            "retrieved_at",
+            "license",
+            "reviewed_by",
         )
         self._conn.executemany(
             "INSERT INTO medicines (name, normalized_name, composition, uses,"
             " side_effects, manufacturer, ingredients, excellent_review,"
-            " average_review, poor_review, source, is_authoritative, updated_at)"
+            " average_review, poor_review, source, is_authoritative, updated_at,"
+            " source_url, retrieved_at, license, reviewed_by)"
             " VALUES (:name, :normalized_name, :composition, :uses,"
             " :side_effects, :manufacturer, :ingredients, :excellent_review,"
             " :average_review, :poor_review, :source, :is_authoritative,"
-            " :updated_at)",
+            " :updated_at, :source_url, :retrieved_at, :license, :reviewed_by)",
             [
                 {
                     **item,
@@ -318,7 +349,99 @@ class SQLiteRepository:
             ],
         )
         self._conn.commit()
+        self._med_gen += 1
         return len(items)
+
+    # -- Chỉ mục truy hồi cho danh mục LỚN --
+
+    def _medicine_index(self) -> tuple[list[MedicineResponse], dict[str, list[int]]]:
+        """Danh mục + chỉ mục ngược `từ -> vị trí thuốc`, dựng lười và tự làm mới.
+
+        Làm mới khi (a) chính ta ghi (`_med_gen`) hoặc (b) tiến trình KHÁC ghi vào cùng
+        file (`PRAGMA data_version` đổi) — ví dụ vừa chạy `import_real_data` trong lúc
+        server đang chạy. Không có (b) thì server trả lời trên danh mục cũ.
+        """
+        from app.textnorm import tokenize  # nhập cục bộ: textnorm nhập lại module này
+
+        version = (self._conn.execute("PRAGMA data_version").fetchone()[0], self._med_gen)
+        cached = self._med_index
+        if cached is not None and cached[0] == version:
+            return cached[1]
+
+        meds = [
+            _to_medicine(r)
+            for r in self._conn.execute("SELECT * FROM medicines ORDER BY id").fetchall()
+        ]
+        postings: dict[str, list[int]] = {}
+        for i, med in enumerate(meds):
+            vocab = {
+                tok
+                for part in (med.name, med.composition, med.uses, med.side_effects)
+                for tok in tokenize(part or "")
+            }
+            for tok in vocab:
+                postings.setdefault(tok, []).append(i)
+        self._med_index = (version, (meds, postings))
+        return meds, postings
+
+    def candidate_medicines(self, question: str, limit: int = 1000) -> list[MedicineResponse]:
+        """Thuốc **có khả năng liên quan** tới câu hỏi, để đưa vào `build_citations`.
+
+        ⚠️ Vì sao cần: bản cũ chỉ nạp `list_medicines(100, 0)` — 100 thuốc ĐẦU THEO TÊN —
+        nên với danh mục thật (hàng nghìn thuốc) hầu hết câu hỏi tìm sai chỗ rồi bị từ
+        chối. Với 10 thuốc mẫu thì không ai thấy lỗi này.
+
+        Chọn thuốc chứa ít nhất một từ khoá của câu hỏi, ưu tiên từ **hiếm** (idf), cắt ở
+        `limit`; trả theo thứ tự gốc để kết quả ổn định. Chỉ là bước lọc thô: việc chấm
+        điểm, ngưỡng liên quan và "gọi đích danh" vẫn do `app/retrieval.py` quyết định
+        (mọi thuốc chứa từ khoá đều có mặt, nên kết quả khớp bản chạy trên toàn danh mục).
+        """
+        from app.textnorm import content_tokens  # nhập cục bộ: tránh vòng lặp
+
+        terms = {t for t in content_tokens(question) if " " not in t}
+        if not terms:
+            return []
+        meds, postings = self._medicine_index()
+        total = len(meds)
+        scores: dict[int, float] = {}
+        for term in terms:
+            ids = postings.get(term)
+            if not ids:
+                continue
+            weight = math.log(1 + total / len(ids))
+            for i in ids:
+                scores[i] = scores.get(i, 0.0) + weight
+        best = sorted(scores, key=lambda i: (-scores[i], i))[:limit]
+        best.sort()
+        return [meds[i] for i in best]
+
+    def delete_medicines_by_source(self, source: str, *, prefix: bool = False) -> int:
+        """Xoá các thuốc có `source` khớp (hoặc bắt đầu bằng `source` nếu `prefix`).
+
+        Dùng khi nạp lại một nguồn (idempotent) hoặc gỡ dữ liệu mẫu `dev-sample:`.
+        ⚠️ Không có `source` rỗng: xoá cả bảng thì phải làm có chủ ý, không phải do một
+        tham số trống.
+        """
+        if not source.strip():
+            raise ValueError("source rỗng — từ chối xoá toàn bộ danh mục thuốc.")
+        if prefix:
+            cur = self._conn.execute(
+                "DELETE FROM medicines WHERE source LIKE ? ESCAPE '\\'",
+                (source.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%",),
+            )
+        else:
+            cur = self._conn.execute("DELETE FROM medicines WHERE source = ?", (source,))
+        self._conn.commit()
+        self._med_gen += 1
+        return cur.rowcount
+
+    def medicine_counts_by_source(self) -> dict[str, tuple[int, int]]:
+        """`{source: (số thuốc, số thuốc is_authoritative)}` — chỉ số liệu, không nội dung."""
+        rows = self._conn.execute(
+            "SELECT IFNULL(source, '') AS s, COUNT(*) AS n, SUM(is_authoritative) AS a"
+            " FROM medicines GROUP BY s ORDER BY s"
+        ).fetchall()
+        return {r["s"]: (r["n"], int(r["a"] or 0)) for r in rows}
 
     # -- Lịch sử (luôn lọc theo user_id) --
 
@@ -361,6 +484,38 @@ class SQLiteRepository:
             "DELETE FROM history WHERE id = ? AND user_id = ?", (item_id, user_id)
         )
         self._conn.commit()
+        return cur.rowcount > 0
+
+    def purge_history_older_than(self, days: int) -> int:
+        """Xoá lịch sử cũ hơn `days` ngày (retention); trả số bản ghi đã xoá.
+
+        ⚠️ `days <= 0` nghĩa là **tắt** retention và không xoá gì — tuyệt đối không
+        hiểu thành "xoá hết": một biến môi trường rỗng/sai không được phép làm mất dữ
+        liệu người dùng.
+        """
+        if days <= 0:
+            return 0
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        # `created_at` là ISO-8601 UTC cùng định dạng -> so sánh chuỗi đúng thứ tự thời gian.
+        cur = self._conn.execute("DELETE FROM history WHERE created_at < ?", (cutoff,))
+        self._conn.commit()
+        return cur.rowcount
+
+    def delete_user_and_data(self, user_id: int) -> bool:
+        """Xoá tài khoản và **toàn bộ** dữ liệu gắn `user_id` trong một giao dịch.
+
+        Thứ tự: bảng con (`history`, `refresh_tokens`) trước, `users` sau — khoá ngoại
+        được bật nên đảo thứ tự sẽ bị từ chối. Khác `revoke_token_family` (giữ dấu vết
+        để điều tra), ở đây là quyền được quên nên **xoá hàng thật**.
+        """
+        try:
+            self._conn.execute("DELETE FROM history WHERE user_id = ?", (user_id,))
+            self._conn.execute("DELETE FROM refresh_tokens WHERE user_id = ?", (user_id,))
+            cur = self._conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
         return cur.rowcount > 0
 
     # -- Refresh token (chỉ lưu hash) --

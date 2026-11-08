@@ -104,9 +104,29 @@ def get_key() -> bytes:
     return _KEY
 
 
+#: Giá trị mẫu đã xuất hiện trong repo (docker-compose, .env.example). Ở chế độ
+#: production, dùng lại chúng = ai đọc repo cũng ký được token -> từ chối khởi động.
+_KNOWN_PLACEHOLDER_MARKERS = ("doi-thanh", "thay-bang", "change-me", "changeme", "example", "test-only")
+
+
+def is_production() -> bool:
+    """`MEDASSIST_ENV=production` (đặt trên Railway)."""
+    return os.environ.get("MEDASSIST_ENV", "").strip().lower() in {"production", "prod"}
+
+
 def validate_config() -> None:
-    """Gọi lúc **khởi động server** để fail-fast (xem `app/main.py`)."""
-    get_key()
+    """Gọi lúc **khởi động server** để fail-fast (xem `app/main.py`).
+
+    Production còn chặn thêm khoá mẫu và khoá ít ký tự khác nhau (khoá yếu).
+    """
+    key = get_key()
+    if is_production():
+        text = key.decode("utf-8", errors="ignore").lower()
+        if any(m in text for m in _KNOWN_PLACEHOLDER_MARKERS) or len(set(text)) < 10:
+            raise ConfigError(
+                f"{SECRET_ENV_VAR} là khoá mẫu/yếu — production từ chối khởi động. "
+                "Tạo khoá ngẫu nhiên mới (secrets.token_urlsafe(48))."
+            )
 
 
 def reset_key_cache() -> None:

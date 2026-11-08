@@ -24,6 +24,21 @@ abstract interface class AuthRepository {
   /// gọi lại nhiều lần** — dùng khi app tắt hoặc gặp 401 (Day 11).
   Future<void> logout();
 
+  /// Làm mới phiên bằng refresh token đã lưu. Trả `true` khi có token mới (đã
+  /// lưu); `false` khi không làm mới được (không có refresh token, hết hạn, bị
+  /// thu hồi) — khi đó người dùng phải đăng nhập lại. Không bao giờ ném.
+  Future<bool> refreshSession();
+
+  /// Xoá tài khoản và toàn bộ dữ liệu trên server (quyền được quên). Cần mật
+  /// khẩu để xác nhận. Thành công thì token cục bộ cũng bị xoá.
+  ///
+  /// Ném `AppExceptionKind.unauthorized` khi sai mật khẩu.
+  Future<void> deleteAccount(String password);
+
+  /// Người đang đăng nhập (để hiện tên). `null` nếu backend không có endpoint này hoặc gọi
+  /// lỗi — **không bao giờ ném**. Token hết hạn thì tầng mạng tự làm mới / đăng xuất.
+  Future<User?> currentUser();
+
   /// Token hiện tại, `null` nếu chưa đăng nhập. Đây là nguồn cho
   /// `ApiClient.tokenProvider` (Day 11), nên phải đọc **đồng bộ về mặt logic**
   /// và không được ném lỗi.

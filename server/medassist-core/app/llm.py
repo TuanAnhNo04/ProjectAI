@@ -15,6 +15,8 @@ Cả ba đều chưa có. Vì vậy hôm nay:
 - ✅ `LLMProvider` (interface) để route không phụ thuộc hãng cụ thể.
 - ✅ `MockLLMProvider` — **tất định, offline, không đọc biến môi trường, không mở
   socket**.
+- ✅ (bổ sung) `OllamaProvider` trong `app/llm_ollama.py`: LLM thật **chạy trên máy này**,
+  chỉ nhận địa chỉ loopback, bật bằng `MEDASSIST_LLM=ollama`. Dữ liệu không rời máy.
 - ❌ **Không** có `OpenAIProvider`/`GeminiProvider`, **không** có API key.
 - ❌ **Không** mã nào trong repo gọi `requests`/`httpx`/`urllib` ra internet.
 
@@ -28,6 +30,8 @@ thì trả `refused` — xem `app/agent.py`.
 
 from __future__ import annotations
 
+import logging
+import os
 from typing import Protocol
 
 from app.schemas import LLMMessage, LLMResponse
@@ -146,10 +150,41 @@ _default_provider: MockLLMProvider = MockLLMProvider()
 
 
 def get_llm_provider() -> LLMProvider:
-    """Provider hiện tại — **luôn là mock**.
+    """Provider hiện tại theo **cấu hình server** — **mặc định là mock**.
 
-    ⚠️ Không đọc biến môi trường, không đăng ký provider khác. Khi được phép gắp
-    adapter thật (sau khi đủ 3 điều kiện ở `AGENTS.md` mục 2), chỗ duy nhất cần
-    sửa là hàm này.
+    `MEDASSIST_LLM=ollama` -> Ollama **chạy trên máy này** (`app/llm_ollama.py`, chỉ
+    nhận địa chỉ loopback) nên dữ liệu không rời máy. Địa chỉ sai -> quay về mock.
+
+    `MEDASSIST_LLM=claude` -> Claude thật (`app/llm_claude.py`), CHỈ dựng được khi biến
+    môi trường `ANTHROPIC_API_KEY` đã đặt; thiếu khoá -> quay về mock.
+
+    ⚠️ Hàm này chỉ là **lựa chọn ở tầng server** (admin bật tính năng hay chưa) — đây
+    KHÔNG phải lớp phòng vệ duy nhất cho Claude. Lớp thứ hai, độc lập và bắt buộc, nằm ở
+    `app/orchestrator.py::_select_provider_for_request()`: dù server đã bật
+    `MEDASSIST_LLM=claude`, một lượt chat cụ thể **vẫn không được gửi ra Claude** nếu
+    người dùng của lượt đó chưa đồng ý (`cloud_ai_consent=false`). Việc gọi hàm NÀY
+    không đồng nghĩa dữ liệu của một người dùng cụ thể sẽ rời máy — đọc chỗ gọi hàm.
+
+    ⚠️ File này **không được import thư viện HTTP** (có test canh): adapter nằm ở file
+    riêng và chỉ được nạp khi bật cờ.
     """
+    mode = os.environ.get("MEDASSIST_LLM", "").strip().lower()
+    if mode == "ollama":
+        from app.llm_ollama import build_ollama_provider
+
+        try:
+            return build_ollama_provider()
+        except ValueError:
+            logging.getLogger("medassist").warning(
+                "MEDASSIST_OLLAMA_URL không phải địa chỉ trên máy này; dùng mock."
+            )
+    elif mode == "claude":
+        from app.llm_claude import build_claude_provider
+
+        try:
+            return build_claude_provider()
+        except (RuntimeError, ValueError):
+            logging.getLogger("medassist").warning(
+                "Thiếu ANTHROPIC_API_KEY hoặc cấu hình sai; dùng mock."
+            )
     return _default_provider

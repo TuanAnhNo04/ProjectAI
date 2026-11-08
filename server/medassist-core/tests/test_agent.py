@@ -444,3 +444,44 @@ def test_log_chi_cho_phep_truong_an_toan():
             assert_log_safe(**{forbidden: "x"})
 
 
+
+
+# ---- verify_grounding: đầu ra kiểu Claude (dữ liệu giả) ----
+from app.agent import verify_grounding as _vg  # noqa: E402
+from app.schemas import CitationResponse as _CR  # noqa: E402
+
+
+def _mk(i, e):
+    return _CR(id=i, medicine_name="Panadol 500mg", field="x", excerpt=e)
+
+
+_PANADOL = [
+    _mk("R1", "Panadol 500mg: paracetamol giảm đau, hạ sốt. Dùng cho đau đầu, đau răng, đau cơ."),
+    _mk("R2", "Panadol 500mg: tránh dùng chung với các thuốc khác chứa paracetamol."),
+    _mk("R3", "Panadol 500mg: bảo quản nơi khô ráo, dưới 30 độ C."),
+]
+_A = "Panadol 500mg chứa paracetamol, giảm đau và hạ sốt"
+
+
+import pytest as _pt  # noqa: E402
+
+
+@_pt.mark.parametrize(
+    "text,ok",
+    [
+        (f"- {_A} [R1]", True),
+        (f"- **Panadol 500mg** chứa **paracetamol**, giảm đau và hạ sốt [R1]", True),
+        (f"Dựa trên thông tin tham chiếu:\n- {_A} [R1]", True),
+        (f"- {_A} [R1]\n\nHãy hỏi dược sĩ hoặc bác sĩ nếu cần thêm thông tin.", True),
+        ("- Panadol 500mg giảm đau, hạ sốt và nên bảo quản nơi khô ráo [R1, R3]", True),
+        (f"1. {_A} [R1]", True),
+        (f"- {_A} [R1]\n- Tránh dùng chung với thuốc khác chứa para", False),  # cụt, thiếu mã
+        (f"- {_A} [R9]", False),  # mã bịa
+        ("- Panadol 500mg, uống 2 viên mỗi 4 giờ, tối đa 8 viên mỗi ngày [R1]", False),  # liều bịa
+        (f"- {_A} [R1]\nUống 2 viên mỗi ngày, hỏi dược sĩ nếu cần.", False),  # số liệu không mã
+        (f"Luôn dùng đủ 3 viên mỗi ngày.\n- {_A} [R1]", False),
+        ("Hãy hỏi dược sĩ.", False),  # không có dòng nào được trích dẫn
+    ],
+)
+def test_verify_grounding_claude_style(text, ok):
+    assert _vg(text, _PANADOL)[0] is ok

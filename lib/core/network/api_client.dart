@@ -13,6 +13,12 @@ typedef TokenProvider = Future<String?> Function();
 /// Được gọi khi server trả 401: xoá token + điều hướng về Login (Day 11).
 typedef UnauthorizedCallback = void Function();
 
+/// Làm mới phiên khi access token hết hạn. Trả `true` nếu đã có token mới.
+///
+/// Phải **single-flight** ở phía cài đặt: server xoay refresh token nên dùng
+/// lại token cũ bị coi là đánh cắp (xem `RemoteAuthRepository.refreshSession`).
+typedef TokenRefresher = Future<bool> Function();
+
 /// Mô tả một file cần upload (field `image` mà Flask đang chờ).
 class UploadFile {
   const UploadFile({required this.path, this.field = 'image', this.filename});
@@ -39,12 +45,28 @@ class ApiClient {
     Dio? dio,
     this.tokenProvider,
     this.onUnauthorized,
+    this.tokenRefresher,
+    this.retryDelays = const [
+      Duration(milliseconds: 400),
+      Duration(milliseconds: 1200),
+    ],
     bool? logTraffic,
     List<String>? publicPaths,
   })  : dio = dio ?? Dio(),
         logTraffic = logTraffic ?? kDebugMode,
         publicPaths = List<String>.unmodifiable(
-          publicPaths ?? const ['/login', '/register', '/health'],
+          publicPaths ??
+              const [
+                '/login',
+                '/register',
+                '/health',
+                '/v1/auth/login',
+                '/v1/auth/register',
+                '/v1/auth/refresh',
+                '/v1/auth/logout',
+                '/v1/health',
+                '/v1/news',
+              ],
         ) {
     final options = this.dio.options;
     options
@@ -66,6 +88,8 @@ class ApiClient {
           AuthInterceptor(
             tokenProvider: tokenProvider,
             onUnauthorized: onUnauthorized,
+            tokenRefresher: tokenRefresher,
+            dio: this.dio,
             publicPaths: this.publicPaths,
             logTraffic: this.logTraffic,
           ),
@@ -75,6 +99,15 @@ class ApiClient {
   final Dio dio;
   final TokenProvider? tokenProvider;
   final UnauthorizedCallback? onUnauthorized;
+
+  /// Có thì 401 ở endpoint có bảo vệ được thử làm mới phiên + gọi lại 1 lần
+  /// trước khi coi là hết phiên.
+  final TokenRefresher? tokenRefresher;
+
+  /// Độ trễ giữa các lần thử lại của **GET** khi mất kết nối/server tạm lỗi.
+  /// Rỗng = không thử lại. Chỉ GET (idempotent): POST/DELETE thử lại có thể
+  /// tạo/xoá hai lần.
+  final List<Duration> retryDelays;
 
   /// Mặc định chỉ bật khi debug, và **luôn che** `Authorization` + mật khẩu.
   final bool logTraffic;
@@ -110,12 +143,17 @@ class ApiClient {
       );
 
   /// POST JSON thô — ném [AppException].
+  ///
+  /// [recoverUnauthorized] = `false` cho thao tác mà 401 nghĩa là "sai mật khẩu
+  /// xác nhận" chứ không phải "hết phiên" (vd xoá tài khoản): không làm mới phiên,
+  /// không đăng xuất người dùng.
   Future<Response<dynamic>> post(
     String path, {
     Object? data,
     Map<String, Object?>? query,
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
+    bool recoverUnauthorized = true,
   }) =>
       request<dynamic>(
         'POST',
@@ -124,6 +162,7 @@ class ApiClient {
         query: query,
         headers: headers,
         cancelToken: cancelToken,
+        recoverUnauthorized: recoverUnauthorized,
       );
 
   /// DELETE thô — ném [AppException].
@@ -187,24 +226,37 @@ class ApiClient {
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
+    bool recoverUnauthorized = true,
   }) async {
     final target = url(path, query);
     final options = Options(
       method: method,
       responseType: responseType,
       headers: headers,
-      extra: <String, Object?>{'path': path},
+      extra: <String, Object?>{
+        'path': path,
+        if (!recoverUnauthorized) AuthInterceptor.noRecoveryKey: true,
+      },
       receiveTimeout: receiveTimeout,
     );
     try {
-      return await dio.request<T>(
-        target.toString(),
-        data: data,
-        options: options,
-        cancelToken: cancelToken,
-        onSendProgress: onSendProgress,
-        onReceiveProgress: onReceiveProgress,
-      );
+      for (var attempt = 0;; attempt++) {
+        try {
+          return await dio.request<T>(
+            target.toString(),
+            data: data,
+            options: options,
+            cancelToken: cancelToken,
+            onSendProgress: onSendProgress,
+            onReceiveProgress: onReceiveProgress,
+          );
+        } on DioException catch (e) {
+          final canRetry =
+              method == 'GET' && attempt < retryDelays.length && isTransient(e);
+          if (!canRetry) rethrow;
+          await Future<void>.delayed(retryDelays[attempt]);
+        }
+      }
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     } on AppException {
@@ -217,6 +269,23 @@ class ApiClient {
         uri: target,
         cause: e,
       );
+    }
+  }
+
+  /// Lỗi tạm thời đáng thử lại: mất kết nối, hết thời gian chờ kết nối, hoặc
+  /// server báo 502/503/504. **Không** thử lại 4xx/500 hay request bị huỷ.
+  @visibleForTesting
+  static bool isTransient(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionError:
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+        return true;
+      case DioExceptionType.badResponse:
+        final code = e.response?.statusCode;
+        return code == 502 || code == 503 || code == 504;
+      default:
+        return false;
     }
   }
 
@@ -237,16 +306,28 @@ class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     this.tokenProvider,
     this.onUnauthorized,
+    this.tokenRefresher,
+    this.dio,
     required this.publicPaths,
     required this.logTraffic,
   });
 
   final TokenProvider? tokenProvider;
   final UnauthorizedCallback? onUnauthorized;
+  final TokenRefresher? tokenRefresher;
+
+  /// Cần để gọi lại request sau khi làm mới phiên.
+  final Dio? dio;
   final List<String> publicPaths;
   final bool logTraffic;
 
   static const String startedAtKey = 'apiStartedAt';
+
+  /// Đánh dấu request đã được gọi lại sau làm mới — chặn vòng lặp vô hạn.
+  static const String retriedKey = 'apiRetriedAfterRefresh';
+
+  /// Request đặt cờ này thì 401 chỉ là lỗi thường (không làm mới, không đăng xuất).
+  static const String noRecoveryKey = 'apiNoUnauthorizedRecovery';
 
   /// Khoá (header hoặc field) không được xuất hiện trong log.
   static const Set<String> sensitiveKeys = {
@@ -306,7 +387,10 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     if (logTraffic) {
       developer.log(
         '← LỖI ${err.response?.statusCode ?? err.type.name} '
@@ -315,11 +399,37 @@ class AuthInterceptor extends Interceptor {
         name: 'API',
       );
     }
-    // 401 ở endpoint có bảo vệ -> báo tầng auth xoá token (Day 11).
+    // 401 ở endpoint có bảo vệ: thử làm mới phiên trước, hết cách mới coi là hết
+    // phiên và báo tầng auth xoá token (Day 11).
     if (err.response?.statusCode == 401 &&
-        onUnauthorized != null &&
-        !isPublic(err.requestOptions)) {
-      onUnauthorized!();
+        !isPublic(err.requestOptions) &&
+        err.requestOptions.extra[noRecoveryKey] != true) {
+      final options = err.requestOptions;
+      final refresher = tokenRefresher;
+      final client = dio;
+      if (refresher != null &&
+          client != null &&
+          options.extra[retriedKey] != true &&
+          await refresher()) {
+        // FormData chỉ gửi được 1 lần -> không gọi lại được; phiên đã được làm
+        // mới nên KHÔNG đăng xuất, để người dùng thử lại thao tác.
+        if (options.data is FormData) {
+          handler.next(err);
+          return;
+        }
+        final token = await tokenProvider?.call();
+        options.extra[retriedKey] = true;
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        try {
+          handler.resolve(await client.fetch<dynamic>(options));
+        } on DioException catch (retryError) {
+          handler.next(retryError);
+        }
+        return;
+      }
+      onUnauthorized?.call();
     }
     handler.next(err);
   }

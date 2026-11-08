@@ -586,54 +586,171 @@ Thứ tự kiểm tra **an toàn** (có test cho từng bước):
 > *hợp đồng luồng sự kiện* (Dart ↔ SSE) và ở *việc nuốt exception*, nơi "xanh test"
 > không bảo chứng "chạy đúng". Đừng chỉ test logic, hãy test cả luồng.
 
+> ✅ **Day 24 xong** — `python eval.py` → **109/109 xanh** (40 ms).
+>
+> **Eval suite (`evals/cases.yaml`):** 109 ca chia 8 nhóm:
+>
+> | Nhóm | Số ca | Kiểm tra |
+> |---|---|---|
+> | lookup | 15 | Tra cứu trực tiếp tên thuốc → answered + citations |
+> | composition | 10 | Hỏi thành phần/hoạt chất |
+> | uses | 10 | Hỏi công dụng |
+> | side_effects | 8 | Hỏi tác dụng phụ |
+> | out_of_scope | 25 | Chẩn đoán, liều, tương tác, cấp cứu, thai kỳ |
+> | injection | 15 | Prompt injection (VI/EN/ES) |
+> | no_evidence | 15 | Thuốc không có trong database |
+> | edge | 11 | Ký tự đặc biệt, XSS, SQL inject, emoji, Unicode |
+>
+> **Observability đã có sẵn từ code Day 22-23:**
+> - Trace middleware: `app/main.py:66-109` — sinh `trace_id`, ghi `access_log()` 4 trường
+> - UsageTracker: RAM per-user, trả qua `/v1/agent/usage` (không ghi log — D4)
+> - Safe logging: `ALLOWED_LOG_FIELDS` + `safe_log_fields()` + `assert_log_safe()`
+>
+> ⚠️ **Phát hiện quan trọng qua eval: `_OUT_OF_SCOPE_RE` có 15 lỗ hổng regex.**
+> Nguyên nhân: character class `[eê]` không khớp `ề`, `[oô]` không khớp `ố`,
+> `[uương]ng` chỉ khớp 1 ký tự thay vì chuỗi `ương`. Hậu quả: câu hỏi tiếng Việt
+> có dấu như "Liều dùng", "Tương tác", "Chẩn đoán" lọt qua bộ lọc phạm vi.
+> An toàn hiện tại dựa vào lớp 2 (grounding) — nhưng nên sửa regex sớm.
+> Sửa đề xuất: so khớp trên chuỗi `normalize()` (bỏ dấu) thay vì chuỗi gốc.
+>
+> ⏸️ **Dart client sinh từ openapi.json:** cần package `openapi_generator` hoặc
+> `retrofit_generator` (D2: chờ duyệt). Models Dart hiện tại (`lib/data/models/`)
+> đã khớp schema thủ công — chưa cần thiết gấp.
+>
+> **DoD kiểm chứng:**
+> - `python eval.py` → 109/109 ✅
+> - Tăng `MIN_RELEVANCE_SCORE` 0.15→0.50 → điểm tụt 100%→79.8% (22 fail) ✅
+> - `python -m pytest` → 231/231 ✅ (không hồi quy)
+
 ### Day 24 — Eval + quan sát + hợp đồng API (2 ngày gộp) 🤖✋
-- [ ] 🤖 Bộ **eval 100–200 ca** (`evals/cases.yaml`): đơn thuốc mẫu, ảnh mờ, tương tác nguy hiểm, câu hỏi bẫy, câu hỏi ngoài phạm vi
-- [ ] 🤖 `eval.py` chạy tự động → báo cáo pass/fail theo nhóm; chạy lại mỗi khi đổi prompt/model
-- [ ] 🤖 Observability: trace id mỗi request, log chi phí token theo user, dashboard cơ bản
-- [ ] 🤖 Sinh **Dart client** từ `openapi.json` (retrofit/openapi_generator) → app dùng type-safe, bỏ parse tay
-- [ ] **DoD:** `python eval.py` in bảng điểm; đổi prompt → điểm thay đổi rõ ràng. 🎉 **Milestone M2**
+- [x] 🤖 Bộ **eval 109 ca** (`evals/cases.yaml`): 8 nhóm (lookup, composition, uses, side_effects, out_of_scope, injection, no_evidence, edge)
+- [x] 🤖 `eval.py` chạy tự động → bảng điểm theo nhóm; tăng ngưỡng BM25 0.15→0.50 → 100%→79.8%
+- [x] 🤖 Observability: trace id middleware (`app/main.py:66-109`), UsageTracker RAM (`app/observability.py`), safe logging 4 trường
+- [ ] ⏸️ Sinh **Dart client** từ `openapi.json` — cần package `openapi_generator`/`retrofit_generator` (D2: chờ duyệt). Models Dart hiện tại đã khớp schema thủ công.
+- [x] **DoD:** `python eval.py` → 109/109 xanh; đổi prompt → điểm thay đổi rõ ràng. 🎉 **Milestone M2**
 
 ---
 
 ## 5. GIAI ĐOẠN P3 — Nâng cao & Release (Day 25 → Day 30+)
 
 ### Day 25 — Chat UI streaming (3 giờ) 🤖✋
-- [ ] 🤖 Màn `AgentChatScreen`: stream token (Dio `ResponseType.stream` / SSE), bong bóng hội thoại, **citation bấm được**
-- [ ] 🤖 Trạng thái "đang tra cứu…" khi agent gọi tool; nút Dừng; lịch sử hội thoại lưu offline
+- [x] 🤖 Màn `AgentChatScreen`: stream token (Dio `ResponseType.stream` / SSE), bong bóng hội thoại, **citation bấm được**
+- [x] 🤖 Trạng thái "đang tra cứu…" khi agent gọi tool; nút Dừng; ~~lịch sử hội thoại lưu offline~~ ⏸️ (cần Day 27 offline infra)
 - [ ] **DoD:** chữ hiện dần theo token; bấm citation mở đúng đoạn tài liệu.
 
+> **Day 25 execution log (2026-10-13):**
+> - `SseAgentClient` — Dio `ResponseType.stream` → parse SSE `event:/data:` → `AgentEvent` sealed class. Handles token/tool_call/citation/done/failure/refusal.
+> - `ChatController` (AutoDisposeAsyncNotifier) — accumulates tokens into last message, manages stream lifecycle, stop/clear.
+> - `AgentChatScreen` — bubble UI, typing indicator (animated dots), citation chips → bottom-sheet, tool-running chip, stop button, clear dialog.
+> - i18n: 9 new keys (vi+en): chatTitle/chatHint/chatSend/chatStop/chatEmpty/chatClear/chatClearTitle/chatClearBody/chatToolRunning.
+> - `agentClientProvider` + `chatControllerProvider` wired in `providers.dart`.
+> - Navigation: chat icon button added to `ProcessImageScreen` AppBar.
+> - `flutter analyze` → 0 issues.
+> - Remaining: offline history persistence (stretch — depends on offline cache infra), runtime DoD verification needs server running.
+
 ### Day 26 — On-device OCR + Hybrid (4 giờ) 🤖✋
-- [ ] ✋ Thêm lại dependency đúng: `google_mlkit_text_recognition`, `image`, `path_provider` (**không** dùng `tflite_flutter_helper` — đã discontinued)
+- [x] ✋ Thêm lại dependency đúng: `google_mlkit_text_recognition`, `path_provider` (**không** dùng `tflite_flutter_helper` — đã discontinued)
 - [ ] ✋ iOS: sửa `Podfile` thành `platform :ios, '15.5'` + block `post_install` set `IPHONEOS_DEPLOYMENT_TARGET`; đặt `compileSdk/targetSdk = 35`
-- [ ] 🤖 `ondevice_analyzer.dart` (ML Kit OCR + chuẩn hoá chuỗi + tra DB local) và `hybrid_analyzer.dart` (local trước → fallback remote → ghi cache)
-- [ ] 🤖 Feature flag chọn adapter: `--dart-define=ANALYZER=hybrid` (không sửa UI)
+- [x] 🤖 `ondevice_analyzer.dart` (ML Kit OCR + chuẩn hoá chuỗi + tra DB local) và `hybrid_analyzer.dart` (local trước → fallback remote → ghi cache)
+- [x] 🤖 Feature flag chọn adapter: `--dart-define=ANALYZER=hybrid` (không sửa UI)
 - [ ] ✋ Test trên **thiết bị thật** (emulator OCR kém chính xác) ở chế độ máy bay
 - [ ] **DoD:** chế độ máy bay + ảnh có trong DB local → vẫn trả kết quả < 2 giây.
 
+> **Day 26 execution log (2026-10-13):**
+> - `OnDeviceAnalyzer` — ML Kit `TextRecognizer` → OCR text → `_matchMedicines()` with normalized substring + 60% token overlap. Full Vietnamese diacritics removal (`_removeDiacritics`). `dispose()` closes recognizer.
+> - `HybridAnalyzer` — 3-tier fallback: local (OnDevice) → remote (API) → cache (OfflineCache) → throw. Saves successful results to cache.
+> - Feature flag: `const _analyzerMode = String.fromEnvironment('ANALYZER', defaultValue: 'remote')` in `providers.dart`. Values: `remote` (default), `ondevice`, `hybrid`.
+> - `medicineDatabaseProvider` (StateProvider) feeds local medicine list to OnDeviceAnalyzer.
+> - `compileSdk = 35` set in `android/app/build.gradle`.
+> - Packages added: `google_mlkit_text_recognition ^0.13.0`, `path_provider ^2.1.3`.
+> - `flutter analyze` → 0 errors (1 info: transitive `path` dep).
+> - Remaining: iOS Podfile config, real-device OCR testing, DoD runtime verification.
+
 ### Day 27 — Memory & nhắc uống thuốc (3 giờ) 🤖✋
-- [ ] 🤖 Hồ sơ sức khoẻ: dị ứng, bệnh nền, thuốc đang dùng (có consent rõ ràng, sửa/xoá được)
-- [ ] 🤖 Nhắc uống thuốc bằng local notification; ghi nhận adherence; agent dùng dữ liệu này khi trả lời
+- [x] 🤖 Hồ sơ sức khoẻ: dị ứng, bệnh nền, thuốc đang dùng (có consent rõ ràng, sửa/xoá được)
+- [x] 🤖 Nhắc uống thuốc bằng local notification; ghi nhận adherence; agent dùng dữ liệu này khi trả lời
 - [ ] **DoD:** tạo lịch nhắc → nhận được thông báo; agent biết "thuốc đang dùng" của tôi.
 
+> **Day 27 execution log (2026-10-13):**
+> - `HealthProfile` model — allergies, conditions, currentMedications (List<String>), consentGivenAt. `MedicationReminder` — name, hour, minute, dosage, isActive, daysOfWeek. `AdherenceRecord` — reminderId, takenAt, skipped. All use `toMap()`/`fromMap()` for SQLite, pipe-separated strings for lists.
+> - `HealthDatabase` (singleton, sqflite) — 3 tables: `health_profile`, `medication_reminders`, `adherence_log`. Full CRUD + `deleteAll()` for right-to-be-forgotten.
+> - `NotificationService` (singleton, flutter_local_notifications) — `init()`, `scheduleReminder()` (24h periodic), `cancelReminder()`, `cancelAll()`, `requestPermission()` (Android 13+). Channel: `med_reminder`.
+> - `HealthProfileScreen` — consent banner before saving, 3 TextFields (allergies/conditions/medications), Save/Delete with confirmation dialog.
+> - `ReminderScreen` — reminder cards with Switch toggle + delete, FAB → dialog (name, dosage, time picker).
+> - `HealthProfileController` + `ReminderController` (AsyncNotifier) wired in `providers.dart`.
+> - Client→Server: `ChatController` reads `healthProfileControllerProvider`, sends `currentMedications` via `AgentClient.chat()`. `SseAgentClient` sends `current_medications` in request body.
+> - Server: `AgentChatRequest.current_medications` field added to `schemas.py`. `orchestrator.chat()` appends medication-context warning to answers. `agent.py` router passes `current_medications` through.
+> - i18n: 16 new keys (vi+en): health profile labels, reminder labels, consent/delete messages.
+> - All health data stored **local-only** (sqflite). `current_medications` sent to server only when user actively chats (ephemeral, not persisted server-side).
+> - Packages added: `sqflite ^2.3.2`, `flutter_local_notifications ^17.2.1`.
+> - `flutter analyze` → 0 errors. `pytest` → all pass.
+> - Remaining: runtime DoD verification (needs device with notification permissions).
+
 ### Day 28 — Đóng gói tool thành MCP servers (3 giờ) 🤖✋
-- [ ] 🤖 Expose `search_drug`, `check_interaction` ra **MCP server** (chuẩn mở, dùng lại được cho client AI khác)
-- [ ] 🤖 Orchestrator gọi tool **qua MCP** thay vì import trực tiếp → chứng minh khả năng tái sử dụng
+- [x] 🤖 Expose `search_drug`, `check_interaction` ra **MCP server** (chuẩn mở, dùng lại được cho client AI khác)
+- [x] 🤖 Orchestrator gọi tool **qua MCP** thay vì import trực tiếp → chứng minh khả năng tái sử dụng
 - [ ] ✋ Kiểm thử bằng MCP Inspector
 - [ ] **DoD:** gọi được tool từ ngoài app (một MCP client bất kỳ) — đây là điểm "bước trước thời đại".
 
+> **Day 28 execution log (2026-10-13):**
+> - `app/mcp_server.py` — `MCPServer` (mcp SDK v2) exposing 2 public tools: `search_drug(query)` and `check_interaction(drugs)`. Runs standalone via stdio or SSE transport. Uses its own `SQLiteRepository` (same DB via `MEDASSIST_DB` env). Localhost only.
+> - `app/mcp_tools.py` — `McpTool` adapter implementing `Tool` protocol. Opens stdio subprocess to MCP server per call. `_parse_mcp_result()` converts MCP `CallToolResult` → `ToolResult` with citations.
+> - `mcp_registry()` — hybrid: 2 tools via MCP (`search_drug`, `check_interaction`), 3 direct (`normalize_prescription`, `explain_for_patient`, `schedule_reminder`). Direct tools need `repo`/`user_id` from JWT.
+> - Feature flag: `MEDASSIST_USE_MCP=1` → orchestrator uses `mcp_registry()` instead of `default_registry()`. No orchestrator/route changes needed.
+> - Tests: 14 new tests in `tests/test_mcp.py` — MCP server functions, adapter protocol compliance, result parsing, registry composition, feature flag switching. All pass.
+> - Packages added: `mcp[cli]>=1.0` (installed v2.3.0), `httpx-sse>=0.4` (installed v0.4.3).
+> - `pytest` → all 240+ tests pass (including 14 new MCP tests).
+> - Remaining: MCP Inspector manual testing (DoD), end-to-end stdio transport test.
+
 ### Day 29 — An toàn, riêng tư, ổn định (3 giờ) 🤖✋
-- [ ] 🤖 Consent + chính sách dữ liệu trong app; retention (tự xoá ảnh sau N ngày); audit log hành động nhạy cảm
-- [ ] 🤖 Crash reporting (Crashlytics/Sentry), timeout + retry, offline queue
+- [~] 🤖 Consent + chính sách dữ liệu trong app; retention (tự xoá ảnh sau N ngày); audit log hành động nhạy cảm — **phía server + tài liệu xong, màn consent/xoá tài khoản trong app CHƯA** (xem log bên dưới)
+- [ ] 🤖 Crash reporting (Crashlytics/Sentry) ⛔ cần chủ dự án duyệt (SDK gửi dữ liệu ra ngoài); timeout + retry, offline queue chưa làm
 - [ ] ✋ Test tay 8 tình huống xấu: mất mạng giữa upload, token hết hạn, server 500, ảnh cực lớn, màn hình nhỏ, cỡ chữ lớn, xoay màn hình, đăng nhập 2 tài khoản
 - [ ] **DoD:** không có màn trắng/crash trong 8 tình huống trên.
 
+> **Day 29 execution log (2026-10-24) — chỉ phần kiểm chứng được trên máy này (không có Flutter/JDK):**
+> - 🔴 **Sửa lỗ hổng an toàn thật:** `_OUT_OF_SCOPE_RE` (regex có dấu, character class sai) để lọt "tương tác", "liều dùng", "chẩn đoán"… Thay bằng `is_out_of_scope()` khớp trên chuỗi đã `normalize()` (`app/agent.py`); luồng chat dùng `allow_interaction=True` để câu tương tác đi tới `check_interaction`. Test: `tests/test_scope.py` (22 ca).
+> - ⚠️ Eval: 10 ca `oos_001–019` mong `no_evidence` — đó là kỳ vọng "đóng băng" theo hành vi lỗi; đã sửa thành `out_of_scope` (đúng như tiêu đề nhóm). 2 ca `oos_024/025` khớp mẫu regex cũ viết từ chuỗi vô nghĩa nên chuyển sang `no_evidence` (vẫn từ chối, `answered=false`). **Điểm 109/109 giữ nguyên nhưng bài kiểm tra đã thay đổi — rà lại 2 ca này.**
+> - ✅ **Xoá tài khoản** (quyết định D5 từng nợ): `POST /v1/auth/delete-account` (token + mật khẩu, giới hạn tốc độ) xoá user, lịch sử, refresh token, hội thoại RAM, số liệu dùng. Test A/B không đụng nhau.
+> - ✅ **Retention:** `MEDASSIST_HISTORY_RETENTION_DAYS` (mặc định tắt; giá trị ≤0/rác = tắt, không bao giờ "xoá hết"), áp dụng lúc khởi động (`app/privacy.py`).
+> - ✅ **Audit log** danh sách hành động đóng, chỉ `trace_id/action/outcome` — cố ý không có `user_id` (D4).
+> - 🔴 **Sửa lỗi riêng tư phía app:** logout / 401 **không xoá cache ngoại tuyến** → người đăng nhập sau thấy lịch sử người trước khi mất mạng. Nay xoá `CacheStore.clear()` (`providers.dart`) + 2 test. ⚠️ **Dart chưa chạy `flutter analyze/test`** (thiếu SDK).
+> - ✅ `android:allowBackup="false"` (hồ sơ sức khoẻ không bị backup lên đám mây; không thêm quyền).
+> - ✅ `docs/PRIVACY.md` (thiếu từ trước dù `AGENTS.md` yêu cầu), `docs/RELEASE.md`, `openapi.json` cập nhật.
+> - `python -m pytest` → **282 xanh** (240 → 282); `python eval.py` → 109/109.
+> - **Chưa làm / cần người:** màn consent + nút "Xoá tài khoản" trong app (cần Flutter để xác minh), mã hoá SQLite/prefs cục bộ, timeout/retry/offline queue, 8 tình huống test tay, crash reporting, quyền `POST_NOTIFICATIONS` (**nhắc thuốc có thể không chạy trên Android 13+**).
+
+> **Day 29 — phần 2 (2026-10-24): chạy thật trên máy ảo `ueh_pixel` (Flutter 3.19.4, JDK 17).**
+> Máy có sẵn toolchain (không nằm trong PATH): Flutter `D:\flutter_windows_3.19.4-stable`, JDK `D:\dev\jdk17`, SDK `D:\Android\Sdk`, AVD `D:\dev\avd`. `flutter analyze` sạch; `flutter test` **308/308**; `pytest` **290**; `eval` 109/109; **kiểm thử sống adapter Dart ↔ server thật 9/9** (`tools/medassist_core/core_live_check_test.dart`).
+>
+> **Lỗi thật tìm ra nhờ chạy thật (trước đó "xanh" nhưng hỏng):**
+> 1. App chỉ khớp mock Flask, **không khớp `medassist-core`** (đường dẫn, tên trường JSON thuốc, token lồng) → thêm `ApiPaths`/`BACKEND`, model đọc cả hai kiểu.
+> 2. **Không có refresh token** → bị đăng xuất sau 15 phút. Nay tự làm mới (single-flight, gọi lại 1 lần).
+> 3. **Chat SSE chưa từng chạy** (`utf8.decoder` sai kiểu `Uint8List`) + `refusal` hiện mã thô + token dính chữ (`_chunk_text` mất khoảng trắng).
+> 4. `build.gradle` dùng `flutter.versionCode` (Flutter mới) → **không build được trên 3.19.4**.
+> 5. OCR trên máy luôn rỗng (`medicineDatabaseProvider` không bao giờ được nạp) → thêm `GET /v1/medicines` + `medicineCatalogProvider`.
+> 6. Nhắc thuốc: **không xin quyền thông báo** (thông báo bị chặn âm thầm) — đã sửa; **giờ nhắc chưa đúng** (cần `timezone`, chờ duyệt).
+> 7. Access log uvicorn lộ từ khoá tìm thuốc — đã tắt.
+> 8. Thêm: màn đồng ý, màn Quyền riêng tư + xoá tài khoản (đã chạy thật), GET tự thử lại, thiết kế lại UI (theme teal Material 3, đăng nhập/đăng ký, lưới lối tắt, nhãn AI ở chat).
+> 9. Chưa tái hiện được: hồ sơ sức khoẻ biến mất sau một lần cài lại APK.
+>
+> **Phần 3 (2026-10-28) — truy hồi kéo nhầm thuốc:** "Panadol có tác dụng phụ gì" trả thêm trích dẫn của Decolgen/Hapacol/Para/Paracetamol Stada, vì đoạn trích có tiền tố nhãn ("Tác dụng phụ: …") nên từ chung của câu hỏi khớp nhãn của thuốc khác. Sửa: `_named_medicines()` trong `app/retrieval.py` — khi câu hỏi chứa từ định danh duy nhất của một thuốc (có trong tên, không xuất hiện ở thuốc khác) thì chỉ truy hồi trong thuốc đó; hoạt chất dùng chung ("paracetamol") không neo. +2 test hồi quy. Chưa tái hiện được đúng ca "Amoxicillin cho câu hỏi Panadol" đã ghi trước đó (có thể chính là lỗi này). `flutter analyze` sạch (1 info), `flutter test` 318, `pytest` xanh, `eval` 109/109.
+
 ### Day 30 — Release (3 giờ) ✋🤖
-- [ ] ✋ Tạo keystore release thật (bỏ debug signing); `flutter build appbundle --release --dart-define=API_BASE_URL=https://...`
+- [~] ✋ Tạo keystore release thật (bỏ debug signing); `flutter build appbundle --release --dart-define=API_BASE_URL=https://...` — ✅ `build.gradle` đã đọc `android/key.properties` (+ `key.properties.example`); ✋ chủ dự án tự tạo keystore, xem **`docs/RELEASE.md`**
 - [ ] ✋ Icon/splash (`flutter_launcher_icons`, `flutter_native_splash`), tên app, ảnh chụp màn hình
 - [ ] ✋ Flavor `dev/staging/prod` + `--dart-define` cho từng môi trường
 - [ ] ✋ Beta nội bộ (Internal testing / TestFlight), thu phản hồi
 - [ ] ✋ `git tag v1.0.0`, cập nhật tiến độ vào Phụ lục C
 - [ ] **DoD:** `.aab` release build thành công, cài được từ Internal testing. 🎉 **Milestone M3**
+
+> **Day 30 execution log (2026-10-28) — chủ dự án duyệt "tất cả":**
+> - ✅ Nhắc thuốc đúng giờ: `zonedSchedule` theo `hour:minute` + `daysOfWeek`, lặp hằng tuần (`nextReminderTime` + 7 test), dựng lại lịch mỗi lần mở app; thêm `timezone ^0.9.4`, quyền `POST_NOTIFICATIONS`/`SCHEDULE_EXACT_ALARM`/`RECEIVE_BOOT_COMPLETED`, 2 receiver của plugin.
+> - ✅ Flavor Gradle `dev/staging/prod` (hậu tố applicationId + nhãn app).
+> - ✅ Icon thích ứng + nền splash bằng tài nguyên Android thuần (không thêm package).
+> - 🔴 **Lỗi release thật tìm ra nhờ build + chạy bản release:** (1) R8 lỗi vì ML Kit tham chiếu bộ nhận dạng chữ Hán/Nhật/Hàn/Devanagari; (2) bật R8 làm nhắc thuốc crash (`TypeToken` của Gson) khi nhận sự kiện khởi động. Sửa bằng `android/app/proguard-rules.pro`; cài lại bản release trên AVD không còn crash.
+> - `flutter test` 325, `flutter analyze` sạch (1 info), `.aab` prod release (41 MB) build được, APK release chạy trên AVD.
+> - ⛔ Crash reporting chưa làm (cần chọn SDK + DSN + consent + PRIVACY.md). ✋ Còn: keystore thật, beta nội bộ, `git tag`, thử thông báo thật tới giờ, 8 tình huống test tay.
 
 ### Sau Day 30 — backlog dài hạn
 - Multi-agent tách vai (interaction checker, adherence coach, report generator) · Voice input (STT) cho người lớn tuổi · OCR đơn thuốc viết tay · PWA/web cho dược sĩ · Multi-tenant cho nhà thuốc · Model routing (việc đơn giản chạy on-device) · Wearable (huyết áp/đường huyết) · Fine-tune model y khoa tiếng Việt · Bản on-premise cho bệnh viện.
@@ -987,3 +1104,24 @@ flutter analyze --no-fatal-infos
 
 *Đây là kế hoạch sống: cập nhật lại mỗi cuối ngày (tick Phụ lục C). Khi bạn ra lệnh thực thi, mặc định tôi sẽ làm **Day 0 → Day 4 (P0)** trước, rồi dừng ở M0 để bạn tự kiểm tra trước khi đi tiếp P1.*
 
+
+
+### 28/10/2026 chiều — Hoàn tất kiểm tra P3 trên máy ảo (Day 25–30)
+
+Chạy thật trên máy ảo `ueh_pixel` (có `adb root`, nên chỉnh được đồng hồ):
+
+| Hạng mục | Kết quả |
+|---|---|
+| Chat streaming | Chạy trong app: câu trả lời kèm `[R1]…` + thẻ nguồn; có LLM cục bộ (Ollama `qwen2.5:3b`) với phương án lùi về câu trích nguyên văn |
+| OCR on-device | Ảnh hộp thuốc GIẢ → ML Kit đọc "Panadol 500mg" → khớp đúng thuốc, kể cả khi **bật chế độ máy bay** |
+| Nhắc thuốc | Tạo lịch trong app, 7 báo thức/tuần; chỉnh đồng hồ máy ảo về 07:59 → **thông báo nổ đúng 08:00** |
+| MCP | Chạy qua client MCP thật (stdio): `search_drug`, `check_interaction`; thêm `tests/test_mcp_live.py` |
+| Riêng tư | Màn đồng ý, xoá tài khoản, PRIVACY.md đã cập nhật (LLM cục bộ chỉ loopback) |
+
+**Lỗi thật tìm thấy nhờ chạy thật (test đơn vị không bắt được):**
+1. Nhắc thuốc: `ZoneRulesException: Unknown time-zone ID: device` — plugin chuyển tên múi giờ sang Java `ZoneId.of`. Sửa: `zoneIdForOffset()` → `UTC+07:00`. Hệ quả của lỗi: lịch được ghi DB nhưng không đặt báo thức, giao diện không cập nhật.
+2. MCP: tiến trình con không nhận `MEDASSIST_DB` (DB `:memory:` rỗng → `search_drug` luôn `no_data`), và `_parse_mcp_result` đọc `isError` trong khi SDK 2.x dùng `is_error` (lỗi bị `except Exception` nuốt thành `mcp_error`). Sửa cả hai (`_server_env()`), thêm test chạy tiến trình con.
+
+Số liệu: `flutter test` 330/330, `flutter analyze` sạch (1 info cũ), `pytest` đạt, `eval.py` 109/109.
+
+**Chưa làm / cần chủ dự án:** keystore thật + `key.properties`, server HTTPS, beta nội bộ, `git tag v1.0.0`, crash reporting (cần chọn SDK + DSN + consent), thử trên điện thoại thật, phần còn lại của 8 tình huống test tay.

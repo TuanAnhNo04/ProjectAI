@@ -1,0 +1,14 @@
+# Không đưa dữ liệu thật, CSDL, bí mật hay cache vào image.
+.env
+.env.*
+!.env.example
+data/real/
+*.db
+*.sqlite3
+*.db.bak-*
+*.real.csv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/
+evals/

@@ -59,6 +59,21 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000
 |---|---|---|
 | `API_BASE_URL` | `http://10.0.2.2:5000` | Địa chỉ server. **Bắt buộc khi chạy thật.** |
 | `API_PREFIX` | *(rỗng)* | Tiền tố path, ví dụ `/api/v1`. |
+| `BACKEND` | `core` | `core` = `medassist-core` (FastAPI, `/v1/...`); `flask` = server Flask cũ / `tools/mock_server`. |
+| `ANALYZER` | `ondevice` (core) / `remote` (flask) | `remote` \| `ondevice` \| `hybrid`. |
+
+**Chạy với backend `medassist-core` trên máy ảo Android** (khoá/dữ liệu GIẢ, chỉ localhost):
+
+```powershell
+# cửa sổ 1 — server
+$env:MEDASSIST_SECRET_KEY = "<chuỗi-ngẫu-nhiên-≥32-ký-tự>"
+$env:MEDASSIST_DB = "$env:TEMP\medassist-dev.db"
+cd server\medassist-core ; python -m app.seed
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+# cửa sổ 2 — app (10.0.2.2 = máy host nhìn từ máy ảo)
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000 --dart-define=BACKEND=core
+```
+
 
 > ⚠️ **Bản build phát hành phải dùng HTTPS.** `AppConfig.validate()` báo lỗi nếu
 > cấu hình sai; app không tự động nới lỏng kiểm tra này.

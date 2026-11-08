@@ -1,5 +1,6 @@
 import 'package:image_processing_app/core/network/api_client.dart';
 import 'package:image_processing_app/core/network/api_exception.dart';
+import 'package:image_processing_app/data/adapters/session_refresher.dart';
 import 'package:image_processing_app/data/models/json_utils.dart';
 import 'package:image_processing_app/data/models/user.dart';
 import 'package:image_processing_app/domain/ports/auth_repository.dart';
@@ -17,7 +18,13 @@ abstract interface class TokenStore {
   /// Ghi token mới (`null` để xoá).
   Future<void> write(String? token);
 
-  /// Xoá token — an toàn khi gọi lại nhiều lần.
+  /// Refresh token (chỉ `medassist-core` có), `null` nếu không có. Không ném.
+  Future<String?> readRefresh();
+
+  /// Ghi refresh token mới (`null` để xoá).
+  Future<void> writeRefresh(String? token);
+
+  /// Xoá **cả** access lẫn refresh token — an toàn khi gọi lại nhiều lần.
   Future<void> clear();
 }
 
@@ -27,6 +34,7 @@ abstract interface class TokenStore {
 /// Day 11 thay bằng lưu trữ bền vững + mã hoá.
 class InMemoryTokenStore implements TokenStore {
   String? _token;
+  String? _refresh;
 
   @override
   Future<String?> read() async => _token;
@@ -35,7 +43,16 @@ class InMemoryTokenStore implements TokenStore {
   Future<void> write(String? token) async => _token = token;
 
   @override
-  Future<void> clear() async => _token = null;
+  Future<String?> readRefresh() async => _refresh;
+
+  @override
+  Future<void> writeRefresh(String? token) async => _refresh = token;
+
+  @override
+  Future<void> clear() async {
+    _token = null;
+    _refresh = null;
+  }
 }
 
 /// Adapter đăng nhập gọi **Flask hiện tại** (`/login`, `/register`).
@@ -49,24 +66,55 @@ class RemoteAuthRepository implements AuthRepository {
     String loginPath = '/login',
     String registerPath = '/register',
     String logoutPath = '/logout',
+    String refreshPath = '/v1/auth/refresh',
+    String deleteAccountPath = '/v1/auth/delete-account',
+    String? mePath = '/v1/auth/me',
+    SessionRefresher? refresher,
   })  : _store = store ?? InMemoryTokenStore(),
         _loginPath = loginPath,
         _registerPath = registerPath,
-        _logoutPath = logoutPath;
+        _logoutPath = logoutPath,
+        _refreshPath = refreshPath,
+        _deleteAccountPath = deleteAccountPath,
+        _mePath = mePath,
+        _refresherOverride = refresher;
 
   final ApiClient _api;
   final TokenStore _store;
   final String _loginPath;
   final String _registerPath;
   final String _logoutPath;
+  final String _refreshPath;
+  final String _deleteAccountPath;
+  final String? _mePath;
+  final SessionRefresher? _refresherOverride;
+
+  /// Dùng chung với `ApiClient` (qua providers) để single-flight; mặc định tự tạo trên
+  /// chính `_api` — đủ cho test và cho nối tay không qua Riverpod.
+  late final SessionRefresher _refresher = _refresherOverride ??
+      SessionRefresher(_api, _store, refreshPath: _refreshPath);
 
   @override
   Future<AuthSession> login(String username, String password) async {
-    final response = await _api.post(
-      _loginPath,
-      data: User(username: username).toCredentialsJson(password: password),
-    );
-    return _accept(response.data, _loginPath);
+    try {
+      final response = await _api.post(
+        _loginPath,
+        data: User(username: username).toCredentialsJson(password: password),
+      );
+      return await _accept(response.data, _loginPath);
+    } on AppException catch (e) {
+      if (e.kind != AppExceptionKind.unauthorized) rethrow;
+      // ⚠️ Thông điệp mặc định của 401 là "phiên hết hạn, đăng nhập lại" — SAI ngữ cảnh ở
+      // màn đăng nhập (người dùng chưa có phiên nào): sai mật khẩu hoặc tài khoản không tồn tại.
+      throw AppException(
+        kind: e.kind,
+        message: 'Tên đăng nhập hoặc mật khẩu không đúng.',
+        statusCode: e.statusCode,
+        detail: e.detail,
+        uri: e.uri,
+        cause: e.cause,
+      );
+    }
   }
 
   @override
@@ -90,9 +138,14 @@ class RemoteAuthRepository implements AuthRepository {
   /// nhất; gọi server chỉ là dọn dẹp thêm. An toàn khi gọi lại nhiều lần.
   @override
   Future<void> logout() async {
+    final refresh = await _store.readRefresh();
     await _store.clear();
     try {
-      await _api.post(_logoutPath);
+      await _api.post(
+        _logoutPath,
+        data:
+            refresh == null ? null : <String, String>{'refresh_token': refresh},
+      );
     } on AppException {
       // Server cũ chưa có /logout (404) hoặc đang mất mạng — bỏ qua.
     }
@@ -100,6 +153,45 @@ class RemoteAuthRepository implements AuthRepository {
 
   @override
   Future<String?> currentToken() => _store.read();
+
+  @override
+  Future<User?> currentUser() async {
+    final path = _mePath;
+    if (path == null) return null;
+    try {
+      final response = await _api.get(path);
+      return User.fromJson(asJsonMap(response.data, path));
+    } on Object {
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> refreshSession() => _refresher.refresh();
+
+  @override
+  Future<void> deleteAccount(String password) async {
+    try {
+      await _api.post(
+        _deleteAccountPath,
+        data: <String, String>{'password': password},
+        // 401 ở đây = sai mật khẩu, không phải hết phiên: đừng đăng xuất người dùng.
+        recoverUnauthorized: false,
+      );
+    } on AppException catch (e) {
+      if (e.kind != AppExceptionKind.unauthorized) rethrow;
+      // Thông điệp mặc định của 401 là "phiên hết hạn, đăng nhập lại" — sai ngữ cảnh.
+      throw AppException(
+        kind: e.kind,
+        message: 'Mật khẩu không đúng.',
+        statusCode: e.statusCode,
+        detail: e.detail,
+        uri: e.uri,
+        cause: e.cause,
+      );
+    }
+    await _store.clear();
+  }
 
   /// Đọc [AuthSession], lưu token nếu server trả, và coi `{"success": false}`
   /// (kèm HTTP 200) là đăng nhập thất bại — một số bản Flask trả kiểu này.
@@ -115,6 +207,7 @@ class RemoteAuthRepository implements AuthRepository {
 
     final session = AuthSession.fromJson(json);
     await _store.write(session.token);
+    await _store.writeRefresh(session.refreshToken);
     return session;
   }
 }

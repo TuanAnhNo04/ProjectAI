@@ -150,3 +150,16 @@ def test_kiem_thu_tay(query, expected, seeded, client):
     assert expected in names, f"'{query}' không ra '{expected}' (ra: {names})"
     for item in body["results"]:
         assert item["source"] is not None
+
+# ------------------------------------------------------------------- seed dev ---
+
+
+def test_seed_chi_nap_khi_bang_rong(repo):
+    from app.seed import seed_if_empty
+
+    first = seed_if_empty(repo)
+    assert first > 0
+    assert repo.list_medicines(1, 0).total == first
+    # Chạy lại không nhân đôi dữ liệu.
+    assert seed_if_empty(repo) == 0
+    assert repo.list_medicines(1, 0).total == first

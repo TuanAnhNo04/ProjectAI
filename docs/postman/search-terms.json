@@ -1,0 +1,42 @@
+[
+  {
+    "term": "Panadol",
+    "expect_min": 1
+  },
+  {
+    "term": "Efferalgan",
+    "expect_min": 1
+  },
+  {
+    "term": "Hapacol",
+    "expect_min": 1
+  },
+  {
+    "term": "Para 500",
+    "expect_min": 1
+  },
+  {
+    "term": "Decolgen",
+    "expect_min": 1
+  },
+  {
+    "term": "Amoxicillin",
+    "expect_min": 1
+  },
+  {
+    "term": "Strepsils",
+    "expect_min": 1
+  },
+  {
+    "term": "paracetamol",
+    "expect_min": 2
+  },
+  {
+    "term": "dau gio",
+    "expect_min": 1
+  },
+  {
+    "term": "xyzkhongtontai",
+    "expect_min": 0
+  }
+]

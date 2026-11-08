@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:image_processing_app/core/theme/app_theme.dart';
 import 'package:image_processing_app/l10n/generated/app_localizations.dart';
 
 /// Cảnh báo y khoa bắt buộc, hiển thị ở **mọi** màn cho ra kết quả (Day 13).
@@ -19,31 +20,30 @@ class MedicalDisclaimer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final neu = NeuTheme.of(context);
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: compact ? 8 : 12,
+        horizontal: 14,
+        vertical: compact ? 10 : 14,
       ),
       decoration: BoxDecoration(
-        color: scheme.surfaceVariant.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.outlineVariant),
+        color: neu.accentSoft.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(compact ? 16 : 20),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 18, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 8),
+          Icon(Icons.info_outline, size: 20, color: neu.accent),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               // Lấy từ AppLocalizations; fallback là chuỗi tiếng Việt để widget
               // vẫn dùng được trong test không bọc Localizations.
               _text(context),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+                color: neu.textMuted,
                 fontStyle: FontStyle.italic,
               ),
             ),

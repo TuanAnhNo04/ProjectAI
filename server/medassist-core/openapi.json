@@ -186,6 +186,109 @@
         }
       }
     },
+    "/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Thông tin tài khoản đang đăng nhập",
+        "description": "Trả dữ liệu của **chính người gọi** (id lấy từ token, không nhận từ client).\n\nApp gọi khi khôi phục phiên: hiện tên người dùng và xác nhận phiên còn hợp lệ. Token\ncòn hạn nhưng tài khoản đã bị xoá thì trả 401 (không coi là còn phiên).",
+        "operationId": "me_v1_auth_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/delete-account": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Xoá tài khoản và toàn bộ dữ liệu (không thể hoàn tác)",
+        "description": "Quyền được quên (quyết định D5): xoá user, lịch sử, phiên đăng nhập, hội thoại.\n\n⚠️ Cần **cả** token **và** mật khẩu: access token sống 15 phút, nếu bị lấy trộm thì\nkẻ cắp không được phép xoá vĩnh viễn tài khoản chỉ bằng token. Thử sai mật khẩu bị\ngiới hạn tốc độ như đăng nhập; sai thì trả cùng một thông báo chung.\n\nHồ sơ sức khoẻ và lịch nhắc nằm **trong máy người dùng** (xem `docs/PRIVACY.md`),\nserver không giữ nên không có gì để xoá ở đó.",
+        "operationId": "delete_account_v1_auth_delete_account_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/validate-password": {
       "post": {
         "tags": [
@@ -261,6 +364,63 @@
               "maximum": 100,
               "minimum": 1,
               "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/medicines": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Danh mục thuốc (cho nhận diện OCR trên máy)",
+        "description": "Danh mục thuốc phân trang, **công khai** — app tải về để OCR không cần mạng.\n\n⚠️ Chỉ là dữ liệu danh mục (tên, thành phần…), không gắn người dùng nào và không\nghi log câu truy vấn. Mỗi bản ghi mang `source`/`is_authoritative` như `/search`.",
+        "operationId": "list_medicines_v1_medicines_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 100,
               "title": "Limit"
             }
           },
@@ -593,6 +753,56 @@
         }
       }
     },
+    "/v1/agent/usage": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Số liệu sử dụng của chính người đang đăng nhập",
+        "description": "Xem số liệu sử dụng **của mình**.\n\n⚠️ ROADMAP Day 24 ghi \"log chi phí token theo user\". Ta **cố ý không** ghi vào\nlog: log ở nơi nhiều người đọc và tồn tại lâu; gắn `user_id` vào đó là tạo bảng\nliên kết vĩnh viễn giữa danh tính và hành vi tìm thuốc (`AGENTS.md` mục 1).\nSố liệu nằm trong RAM và chỉ trả cho **chính người đó** qua đây.\n\nVới provider **mock** nên `cost_usd` luôn bằng 0 — ta đo độ dài để sẵn sàng\nkhi đổi sang provider thật.",
+        "operationId": "my_usage_v1_agent_usage_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agent/chat": {
       "post": {
         "tags": [
@@ -687,6 +897,124 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/lifestyle": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Gợi ý lối sống (stateless, có trích dẫn cho mục về thuốc)",
+        "description": "Tối đa 5 gợi ý. Mục `medication` chỉ lấy từ bản ghi thuốc (có trích dẫn); mục\n`general` từ danh sách viết sẵn, không có khẳng định về bệnh hay liều.\n\n⚠️ **Stateless**: không ghi phiên, lịch sử, số liệu sử dụng hay log nội dung.",
+        "operationId": "lifestyle_v1_agent_lifestyle_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifestyleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifestyleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/news": {
+      "get": {
+        "tags": [
+          "news"
+        ],
+        "summary": "Tin tức thuốc và y tế (tiêu đề + trích đoạn + nguồn)",
+        "description": "Danh sách bài tin.\n\n- Chưa đặt `MEDASSIST_NEWS_FEEDS` -> trả **bài mẫu** kèm `is_sample=true`; server\n  không gọi ra ngoài. App phải hiện rõ đây là nội dung mẫu.\n- Chỉ trả **tiêu đề, trích đoạn ngắn, nguồn, link** — không bao giờ toàn văn bài báo.\n- `failed_sources` cho biết nguồn nào vừa tải hỏng, để app nói thật với người dùng\n  thay vì im lặng hiện thiếu tin.",
+        "operationId": "list_news_v1_news_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 40,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Bỏ qua cache, tải lại từ nguồn",
+              "default": false,
+              "title": "Refresh"
+            },
+            "description": "Bỏ qua cache, tải lại từ nguồn"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -798,10 +1126,28 @@
             "minLength": 8,
             "title": "Session Id"
           },
-          "total": {
-            "type": "integer",
-            "title": "Total",
-            "default": 0
+          "current_medications": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Current Medications"
+          },
+          "cloud_ai_consent": {
+            "type": "boolean",
+            "title": "Cloud Ai Consent",
+            "default": false
+          },
+          "health_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -917,6 +1263,22 @@
         "title": "CitationResponse",
         "description": "Một trích dẫn trả về cho app.\n\n⚠️ `is_authoritative=False` -> app **phải** hiện cảnh báo \"dữ liệu tham khảo,\nkhông thay thế tư vấn của dược sĩ/bác sĩ\"."
       },
+      "DeleteAccountRequest": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "DeleteAccountRequest",
+        "description": "Xác nhận xoá tài khoản bằng mật khẩu (hành động không thể hoàn tác)."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -929,6 +1291,34 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HealthContext": {
+        "properties": {
+          "conditions": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Conditions"
+          },
+          "allergies": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Allergies"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HealthContext",
+        "description": "Ngữ cảnh sức khoẻ từ hồ sơ LOCAL của app — server **không** lưu.\n\n⚠️ Là DỮ LIỆU không tin cậy: chỉ dùng để so khớp chuỗi / đặt trong vùng dữ liệu\ncủa prompt, không bao giờ là chỉ dẫn."
       },
       "HealthResponse": {
         "properties": {
@@ -1039,6 +1429,146 @@
         },
         "type": "object",
         "title": "HistoryResponse"
+      },
+      "LifestyleCitation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "medicine_name": {
+            "type": "string",
+            "title": "Medicine Name"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "medicine_name",
+          "excerpt"
+        ],
+        "title": "LifestyleCitation"
+      },
+      "LifestyleRequest": {
+        "properties": {
+          "current_medications": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Current Medications"
+          },
+          "conditions": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Conditions"
+          },
+          "recent_topics": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Recent Topics"
+          },
+          "cloud_ai_consent": {
+            "type": "boolean",
+            "title": "Cloud Ai Consent",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "LifestyleRequest",
+        "description": "`POST /v1/agent/lifestyle` — **stateless**: server không lưu, không log."
+      },
+      "LifestyleResponse": {
+        "properties": {
+          "tips": {
+            "items": {
+              "$ref": "#/components/schemas/LifestyleTip"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Tips"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          },
+          "generated_by": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "claude"
+            ],
+            "title": "Generated By",
+            "default": "rules"
+          }
+        },
+        "type": "object",
+        "required": [
+          "disclaimer"
+        ],
+        "title": "LifestyleResponse"
+      },
+      "LifestyleTip": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "general"
+            ],
+            "title": "Kind"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/LifestyleCitation"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "body",
+          "kind"
+        ],
+        "title": "LifestyleTip"
       },
       "LoginRequest": {
         "properties": {
@@ -1187,6 +1717,97 @@
         ],
         "title": "MedicineResponse"
       },
+      "NewsArticleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "default": ""
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "source"
+        ],
+        "title": "NewsArticleResponse",
+        "description": "Một bài tin.\n\n⚠️ Cố ý **không** có trường nội dung đầy đủ: ta trích dẫn và dẫn link về bài gốc, không\nđăng lại bài (xem phần điều khoản nguồn trong `app/news.py`)."
+      },
+      "NewsResponse": {
+        "properties": {
+          "articles": {
+            "items": {
+              "$ref": "#/components/schemas/NewsArticleResponse"
+            },
+            "type": "array",
+            "title": "Articles"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          },
+          "is_sample": {
+            "type": "boolean",
+            "title": "Is Sample",
+            "default": false
+          },
+          "failed_sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failed Sources"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "NewsResponse"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -1305,6 +1926,43 @@
           "expires_in"
         ],
         "title": "TokenResponse"
+      },
+      "UsageResponse": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "prompt_chars": {
+            "type": "integer",
+            "title": "Prompt Chars"
+          },
+          "output_chars": {
+            "type": "integer",
+            "title": "Output Chars"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "by_route": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Route"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "prompt_chars",
+          "output_chars",
+          "cost_usd",
+          "by_route"
+        ],
+        "title": "UsageResponse",
+        "description": "Số liệu sử dụng **của chính người đang đăng nhập**.\n\n⚠️ Endpoint này chỉ trả số liệu của người gọi — không có đường để xem của\nngười khác. `user_id` lấy từ token, **không** nhận từ query (nếu nhận thì\nthành IDOR)."
       },
       "UserResponse": {
         "properties": {

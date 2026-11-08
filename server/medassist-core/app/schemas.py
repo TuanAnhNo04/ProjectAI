@@ -12,9 +12,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.provenance import safe_source_url
 
 
 class ErrorResponse(BaseModel):
@@ -43,6 +45,12 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=256)
+
+
+class DeleteAccountRequest(BaseModel):
+    """Xác nhận xoá tài khoản bằng mật khẩu (hành động không thể hoàn tác)."""
+
     password: str = Field(min_length=1, max_length=256)
 
 
@@ -98,6 +106,16 @@ class MedicineResponse(BaseModel):
     is_authoritative: bool = False
     ingredients: list[str] = Field(default_factory=list)
     updated_at: datetime | None = None
+    # Provenance (tuỳ chọn; NULL = chưa rõ, không bịa).
+    source_url: str | None = None
+    retrieved_at: str | None = None
+    license: str | None = None
+    reviewed_by: str | None = None
+
+    @field_validator("source_url")
+    @classmethod
+    def _safe_url(cls, v: str | None) -> str | None:
+        return safe_source_url(v) or None
 
 
 class UsageResponse(BaseModel):
@@ -243,6 +261,21 @@ class CitationResponse(BaseModel):
     is_authoritative: bool = False
     #: Điểm truy hồi 0..1 — để app hiện mức độ liên quan.
     score: float = 0.0
+    #: Provenance. `source_url` chỉ giữ lại nếu qua allowlist (xem app/provenance.py).
+    source_url: str = ""
+    retrieved_at: str = ""
+    license: str = ""
+    reviewed_by: str = ""
+
+    @field_validator("source_url", mode="before")
+    @classmethod
+    def _safe_url(cls, v: str | None) -> str:
+        return safe_source_url(v)
+
+    @field_validator("retrieved_at", "license", "reviewed_by", mode="before")
+    @classmethod
+    def _none_to_empty(cls, v: str | None) -> str:
+        return v or ""
 
 
 class AgentAnswerResponse(BaseModel):
@@ -268,6 +301,35 @@ class AgentAnswerResponse(BaseModel):
     provider: str = Field(examples=["mock"])
 
 
+class NewsArticleResponse(BaseModel):
+    """Một bài tin.
+
+    ⚠️ Cố ý **không** có trường nội dung đầy đủ: ta trích dẫn và dẫn link về bài gốc, không
+    đăng lại bài (xem phần điều khoản nguồn trong `app/news.py`).
+    """
+
+    id: str
+    title: str
+    summary: str = ""
+    #: Link bài gốc; rỗng với bài mẫu kèm theo app.
+    url: str = ""
+    source: str
+    published_at: str | None = None
+    image_url: str | None = None
+
+
+class NewsResponse(BaseModel):
+    articles: list[NewsArticleResponse] = Field(default_factory=list)
+    total: int = 0
+    #: True = đây là bài mẫu, chưa bật nguồn tin thật. App PHẢI hiện rõ điều này.
+    is_sample: bool = False
+    #: Nguồn tải hỏng lần này — để app nói thật thay vì im lặng hiện thiếu tin.
+    failed_sources: list[str] = Field(default_factory=list)
+    #: Tên miền trong allowlist "cổng tin tức đã kiểm chứng" đang áp dụng.
+    verified_sources: list[str] = Field(default_factory=list)
+    disclaimer: str = ""
+
+
 class AgentAskRequest(BaseModel):
     """Câu hỏi của người dùng gửi tới `/v1/agent/ask`.
 
@@ -287,3 +349,85 @@ class AgentChatRequest(BaseModel):
 
     message: str = Field(min_length=1, max_length=2000)
     session_id: str = Field(min_length=8, max_length=64)
+    #: Day 27 — client gửi danh sách thuốc đang dùng (từ hồ sơ sức khoẻ local)
+    #: để agent tham chiếu khi trả lời. Dữ liệu này **không** lưu server.
+    current_medications: list[str] = Field(default_factory=list, max_length=20)
+    #: Day 32 — `true` CHỈ KHI người dùng đã đồng ý trong UI cho câu hỏi này được
+    #: diễn đạt lại bởi LLM đám mây (đã khử định danh). `false`/vắng mặt -> server
+    #: KHÔNG BAO GIỜ gọi nhà cung cấp đám mây cho lượt này, bất kể cấu hình server là
+    #: gì — đây là lớp phòng vệ thứ hai, độc lập với cờ `MEDASSIST_LLM` phía server
+    #: (xem `app/orchestrator.py::_select_provider_for_request`).
+    cloud_ai_consent: bool = False
+    #: Bệnh nền / dị ứng từ hồ sơ local (tuỳ chọn). Không lưu server; là DỮ LIỆU.
+    health_context: HealthContext | None = None
+
+#: Một mục văn bản ngắn do người dùng nhập (bệnh nền, dị ứng, tên thuốc).
+ShortItem = Annotated[str, Field(min_length=1, max_length=100)]
+#: Một chủ đề gần đây (Lifestyle) — dài hơn chút nhưng vẫn giới hạn.
+TopicItem = Annotated[str, Field(min_length=1, max_length=200)]
+
+
+class HealthContext(BaseModel):
+    """Ngữ cảnh sức khoẻ từ hồ sơ LOCAL của app — server **không** lưu.
+
+    ⚠️ Là DỮ LIỆU không tin cậy: chỉ dùng để so khớp chuỗi / đặt trong vùng dữ liệu
+    của prompt, không bao giờ là chỉ dẫn.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    conditions: list[ShortItem] = Field(default_factory=list, max_length=20)
+    allergies: list[ShortItem] = Field(default_factory=list, max_length=20)
+    #: Triệu chứng báo gần đây (từ bộ nhớ LOCAL). Chỉ để so khớp tái phát; không vào prompt.
+    recent_symptoms: list[ShortItem] = Field(default_factory=list, max_length=5)
+
+
+# `AgentChatRequest.health_context` tham chiếu `HealthContext` khai báo ở trên.
+AgentChatRequest.model_rebuild()
+
+
+class LifestyleRequest(BaseModel):
+    """`POST /v1/agent/lifestyle` — **stateless**: server không lưu, không log."""
+
+    current_medications: list[ShortItem] = Field(default_factory=list, max_length=20)
+    conditions: list[ShortItem] = Field(default_factory=list, max_length=20)
+    recent_topics: list[TopicItem] = Field(default_factory=list, max_length=5)
+    cloud_ai_consent: bool = False
+
+
+class LifestyleCitation(BaseModel):
+    id: str
+    medicine_name: str
+    source: str | None = None
+    excerpt: str
+    #: Nguồn chính thống đã kiểm chứng? Mặc định False (client cũ vẫn chạy).
+    is_authoritative: bool = False
+    source_url: str = ""
+    retrieved_at: str = ""
+    license: str = ""
+    reviewed_by: str = ""
+
+    @field_validator("source_url", mode="before")
+    @classmethod
+    def _safe_url(cls, v: str | None) -> str:
+        return safe_source_url(v)
+
+    @field_validator("retrieved_at", "license", "reviewed_by", mode="before")
+    @classmethod
+    def _none_to_empty(cls, v: str | None) -> str:
+        return v or ""
+
+
+class LifestyleTip(BaseModel):
+    title: str
+    body: str
+    kind: Literal["medication", "general", "diet"]
+    citations: list[LifestyleCitation] = Field(default_factory=list)
+
+
+class LifestyleResponse(BaseModel):
+    tips: list[LifestyleTip] = Field(default_factory=list, max_length=5)
+    disclaimer: str
+    generated_by: Literal["rules", "claude"] = "rules"
+    #: Bệnh nền (chuỗi của chính người dùng) chưa có tài liệu ăn uống nạp sẵn.
+    unmatched_conditions: list[str] = Field(default_factory=list, max_length=20)

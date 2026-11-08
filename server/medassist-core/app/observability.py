@@ -1,25 +1,3 @@
-"""Quan sát hệ thống — Day 24. `trace_id`, đo đạc, và **giữ cho log luôn sạch**.
-
-## Ba nguyên tắc không được phá (quyết định `D4`)
-
-1. **Chỉ được ghi 4 trường**: `trace_id`, `latency_ms`, `error_code`, `route`.
-2. **Tuyệt đối không ghi**: nội dung tin nhắn, tên thuốc, email, token, `Authorization`.
-3. ⚠️ **Query string cũng là dữ liệu sức khoẻ.** `GET /v1/search?name=panadol` — chữ
-   "panadol" trong URL chính là thông tin thuốc người dùng đang tra. Nên ta chỉ log
-   **route template** (`/v1/search`), **không** log URL thật. Đây là chỗ dễ sót nhất
-   vì log access của web server mặc định ghi cả URL.
-
-## Vì sao chi phí token **không** nằm trong log
-
-ROADMAP Day 24 yêu cầu "log chi phí token theo user". Log ở nơi nhiều người đọc và
-tồn tại lâu; gắn `user_id` vào log là tạo một bảng liên kết vĩnh viễn giữa danh
-tính và hành vi tìm thuốc — đúng loại dữ liệu `AGENTS.md` mục 1 cấm.
-
-Nên ta đếm vào [UsageTracker] trong RAM và chỉ trả cho **chính người đó** qua
-`/v1/agent/usage`. Log vẫn sạch. Nếu sau này cần tổng hợp toàn hệ thống thì xuất
-ra hệ thống đo lường riêng, **không** viết vào log ứng dụng.
-"""
-
 from __future__ import annotations
 
 import contextvars
@@ -94,6 +72,54 @@ def access_log(
     )
 
 
+# ------------------------------------------------------------------ audit log
+
+#: Trường **được phép** trong audit log. Cố ý KHÔNG có `user_id`/`username`/`route`:
+#: audit log tồn tại lâu và nhiều người đọc; gắn danh tính vào đó là tạo bảng liên kết
+#: vĩnh viễn giữa người dùng và hành vi (cùng lý do với `UsageTracker` ở trên). Muốn
+#: điều tra một sự cố thì dùng `trace_id` đối chiếu với log truy cập.
+AUDIT_LOG_FIELDS = frozenset({"trace_id", "action", "outcome"})
+
+#: Danh sách **đóng** các hành động nhạy cảm. Không nhận chuỗi tự do — chuỗi tự do là
+#: chỗ email/tên thuốc lọt vào log mà không ai để ý.
+AUDIT_ACTIONS = frozenset(
+    {
+        "login_success",
+        "login_failure",
+        "account_deleted",
+        "account_delete_denied",
+        "history_deleted",
+        "session_deleted",
+        "refresh_token_reuse",
+        "retention_purge",
+    }
+)
+
+AUDIT_OUTCOMES = frozenset({"ok", "denied", "error"})
+
+audit_logger = logging.getLogger("medassist.audit")
+
+
+def audit(action: str, outcome: str) -> None:
+    """Ghi **một** dòng audit cho hành động nhạy cảm.
+
+    ⚠️ Chữ ký chỉ nhận hai giá trị thuộc danh sách đóng; gọi sai thì ném `ValueError`
+    ngay (lỗi lập trình, lộ ra khi chạy test) thay vì âm thầm ghi dữ liệu lạ.
+    """
+    if action not in AUDIT_ACTIONS:
+        raise ValueError("audit: hành động không nằm trong danh sách cho phép")
+    if outcome not in AUDIT_OUTCOMES:
+        raise ValueError("audit: kết quả không nằm trong danh sách cho phép")
+    fields: dict[str, Any] = {
+        "trace_id": current_trace_id.get() or "-",
+        "action": action,
+        "outcome": outcome,
+    }
+    audit_logger.info(
+        "audit", extra={k: v for k, v in fields.items() if k in AUDIT_LOG_FIELDS}
+    )
+
+
 @dataclass
 class Usage:
     """Số liệu dùng của **một** người dùng."""
@@ -141,6 +167,10 @@ class UsageTracker:
     def get(self, user_id: int) -> dict[str, Any]:
         """Số liệu của `user_id`. Người khác không có đường gọi được hàm này."""
         return self._data.get(user_id, Usage()).as_dict()
+
+    def forget(self, user_id: int) -> None:
+        """Xoá số liệu của `user_id` (xoá tài khoản — quyền được quên)."""
+        self._data.pop(user_id, None)
 
     def total_users(self) -> int:
         """Chỉ dùng cho test/giám sát — **không** đưa ra API công khai."""

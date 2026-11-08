@@ -1,0 +1,7 @@
+# MẪU — sao chép thành `android/key.properties` (file đó bị git bỏ qua) rồi điền giá trị THẬT.
+# Mọi giá trị dưới đây là GIẢ. Không commit key.properties và không commit keystore.
+storePassword=CHANGE_ME_store_password
+keyPassword=CHANGE_ME_key_password
+keyAlias=medassist-release
+# Đường dẫn tới file .jks, tính từ thư mục android/app/.
+storeFile=../../../secrets/medassist-release.jks

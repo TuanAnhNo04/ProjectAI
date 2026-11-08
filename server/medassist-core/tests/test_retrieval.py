@@ -74,6 +74,23 @@ def test_hoi_chung_ve_tac_dung_van_tim_thay():
     assert any("panadol" in h.citation.medicine_name.lower() for h in hits)
 
 
+def test_goi_dich_danh_thuoc_khong_keo_thuoc_khac():
+    """⭐ Hỏi riêng Panadol thì chỉ trích dẫn Panadol, không kéo Decolgen/Hapacol...
+
+    Trước khi neo theo tên, "Panadol có tác dụng phụ gì" khớp nhãn "Tác dụng phụ" của
+    các thuốc khác -> người dùng thấy trích dẫn của thuốc họ không hỏi.
+    """
+    hits = build_citations(_medicines(), "Panadol có tác dụng phụ gì")
+    assert hits
+    assert {h.citation.medicine_name for h in hits} == {"Panadol 500mg"}
+
+
+def test_hoat_chat_khong_bi_neo_vao_mot_thuoc():
+    """Hoạt chất dùng chung nhiều thuốc -> không neo, vẫn ra nhiều thuốc."""
+    hits = build_citations(_medicines(), "tác dụng phụ của paracetamol")
+    assert len({h.citation.medicine_name for h in hits}) > 1
+
+
 def test_tim_theo_ten_thuoc():
     hits = build_citations(_medicines(), "Panadol 500mg")
     assert hits

@@ -13,21 +13,33 @@ không bao giờ bind `0.0.0.0` trên máy dev (xem `AGENTS.md` mục 3).
 from __future__ import annotations
 
 import json
+import logging
+import os
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
 
+from app.deps import get_repository
 from app.errors import register_error_handlers
 from app.jwt_tokens import validate_config
 from app.observability import access_log, current_trace_id, new_trace_id
-from app.routers import agent, auth, data, health
+from app.privacy import apply_retention
+from app.routers import agent, auth, data, health, news
 
 # ⚠️ FAIL-FAST (quyết định N2): kiểm tra cấu hình NGAY khi module nạp.
 # Nếu `MEDASSIST_SECRET_KEY` thiếu/ngắn thì server **không khởi động** thay vì
 # chạy với khoá yếu rồi hỏng lúc có request đầu tiên.
 validate_config()
+
+# ⚠️ Access log mặc định của uvicorn ghi CẢ query string: `GET /v1/search?name=panadol`
+# — tức là từ khoá thuốc người dùng tra (dữ liệu sức khoẻ) nằm trong log (quyết định D4).
+# Ta đã có access log an toàn riêng (middleware `register_trace_middleware`: chỉ route
+# template + trace_id), nên tắt cái của uvicorn dù server được chạy bằng cách nào.
+logging.getLogger("uvicorn.access").disabled = True
 
 API_PREFIX = "/v1"
 
@@ -40,13 +52,31 @@ Backend cho ứng dụng MedAssist.
 thuốc của bác sĩ.
 """
 
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Lúc khởi động: dọn lịch sử quá hạn theo `MEDASSIST_HISTORY_RETENTION_DAYS`."""
+    repo = get_repository()
+    apply_retention(repo)
+    # Deploy (Railway): CSDL trên volume mới tạo thì rỗng -> nạp danh mục MẪU một lần.
+    if os.environ.get("MEDASSIST_SEED_IF_EMPTY", "").strip() == "1":
+        from app.seed import seed_if_empty
+
+        seed_if_empty(repo)
+    yield
+
+
+_IS_PROD = os.environ.get("MEDASSIST_ENV", "").strip().lower() in {"production", "prod"}
+
 app = FastAPI(
     title="MedAssist Core",
     version=health.SERVICE_VERSION,
     description=DESCRIPTION,
+    lifespan=_lifespan,
     # Lịch sử thay đổi API: `/v1` nên client Flutter chỉ cần đổi `API_BASE_URL`.
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # B-04: production không phơi tài liệu API.
+    docs_url=None if _IS_PROD else "/docs",
+    redoc_url=None if _IS_PROD else "/redoc",
+    openapi_url=None if _IS_PROD else "/openapi.json",
 )
 
 register_error_handlers(app)
@@ -55,6 +85,7 @@ app.include_router(health.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(data.router, prefix=API_PREFIX)
 app.include_router(agent.router, prefix=API_PREFIX)
+app.include_router(news.router, prefix=API_PREFIX)
 
 
 @app.get("/", include_in_schema=False)
